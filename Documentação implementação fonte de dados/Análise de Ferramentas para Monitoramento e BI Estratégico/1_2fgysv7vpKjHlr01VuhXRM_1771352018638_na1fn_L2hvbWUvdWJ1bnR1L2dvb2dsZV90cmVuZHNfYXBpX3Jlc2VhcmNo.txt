@@ -1,0 +1,44 @@
+## Pesquisa sobre a Google Trends API
+
+### Nome da Ferramenta
+Google Trends API
+
+### Finalidades da API (Endpoints e Funcionalidades)
+
+A Google Trends API oferece acesso programático aos dados do Google Trends, permitindo uma análise mais aprofundada e escalável do comportamento de busca. As principais funcionalidades incluem:
+
+- **Acesso a dados históricos**: Acesso a uma janela de dados dos últimos 5 anos.
+- **Agregação de dados**: Capacidade de agregar dados de tendências em intervalos diários, semanais, mensais e anuais.
+- **Comparações ampliadas**: Permite a comparação de dezenas de termos de pesquisa simultaneamente, enquanto a interface web do Google Trends limita a comparação a apenas cinco termos.
+- **Dados escalonados de forma consistente**: A API utiliza um método de escalonamento consistente entre as requisições, o que facilita a junção, comparação e fusão de dados de múltiplas chamadas. Isso difere da interface web, que escala os resultados de 0 a 100 a cada nova consulta.
+- **Análise geográfica**: Oferece a possibilidade de comparar tendências entre países e sub-regiões, seguindo o padrão ISO 3166-2.
+
+### Tipos de Input (Dados e Parâmetros)
+
+Para utilizar a API, são necessários os seguintes parâmetros:
+
+- **Termos de pesquisa**: As palavras-chave ou tópicos cujo interesse de busca se deseja analisar.
+- **Período de tempo**: A janela de tempo para a análise, limitada aos últimos 5 anos.
+- **Agregação de tempo**: A granularidade da agregação dos dados (diária, semanal, mensal ou anual).
+- **Restrição geográfica**: O país ou sub-região para a qual a análise de tendências deve ser focada.
+
+### Tipos de Output/Resposta
+
+A API retorna os dados em formato JSON, contendo as seguintes informações:
+
+- **Métricas de interesse de pesquisa**: Dados que refletem o interesse de busca pelos termos pesquisados, escalonados de forma consistente para permitir comparações entre diferentes requisições.
+
+### Valor Agregado para Monitoramento 360
+
+A Google Trends API pode agregar um valor significativo a um sistema de monitoramento 360, que integra dados de TV, rádio, redes sociais e portais de notícias. As principais contribuições são:
+
+- **Contextualização de menções na mídia**: Permite correlacionar picos de menções na mídia com o aumento do interesse de busca do público, fornecendo um indicador do impacto e da ressonância de notícias e campanhas.
+- **Identificação de tendências emergentes**: Ajuda a identificar tópicos e assuntos que estão ganhando popularidade, permitindo que a estratégia de conteúdo e de comunicação seja ajustada proativamente.
+- **Análise de concorrência e de mercado**: A capacidade de comparar múltiplos termos de pesquisa facilita a análise do posicionamento de marcas, produtos ou figuras públicas em relação aos seus concorrentes.
+- **Inteligência geográfica**: A análise de tendências por região pode revelar insights sobre o impacto de eventos e campanhas em diferentes localidades, otimizando a alocação de recursos.
+
+### Planos e Limitações da API
+
+- **Fase Alpha**: Atualmente, a API está em fase "alpha", o que significa que o acesso é restrito a um número limitado de testadores aprovados. É necessário se inscrever para participar do programa de testes.
+- **Custo**: Não há informações sobre planos ou preços, o que sugere que o acesso é gratuito para os participantes da fase alpha.
+- **Limitações de dados**: O acesso aos dados é limitado a uma janela de 5 anos. Os dados são atualizados e estão disponíveis até dois dias antes da data da requisição.

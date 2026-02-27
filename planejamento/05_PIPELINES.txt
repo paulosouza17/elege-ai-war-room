@@ -1,0 +1,55 @@
+PIPELINES — Fluxos do núcleo (A→E)
+
+Fluxo A — Ingestão & Normalização
+1) Receber payload (Elege.AI ou adapter externo)
+2) Autenticar (token por client)
+3) Validar schema
+4) Normalizar campos (mapping para mentions)
+5) Dedup (external_id/hash)
+6) Persistir mentions
+7) Enfileirar job classify_mention(mention_id)
+
+Fluxo B — Classificação (tema/sentimento/narrativa/risco)
+1) Worker lê mention_id
+2) Enriquecimento:
+   - score da fonte (sources.score)
+   - contexto do setup ativo (setup_entities relevantes)
+3) Classificar (LLM + regras)
+4) Persistir em classifications
+5) Atualizar KPIs (agregados)
+6) Enfileirar job evaluate_rules(client_id, time_bucket)
+
+Fluxo C — Rules Engine (detecção de crise)
+1) Calcular métricas por janela (15m/1h/6h)
+2) Aplicar ruleset do cliente:
+   - pico vs baseline
+   - fonte crítica
+   - termo sensível
+   - adversário específico
+3) Definir severidade (verde/amarelo/vermelho)
+4) Se amarelo/vermelho: criar alert
+5) Se vermelho: criar/atualizar crisis_packet(status=aguardando_aprovação)
+6) Enfileirar send_notifications (conforme severidade/regras)
+
+Fluxo D — CrisisPacket (War Mode)
+1) Coletar evidências (top mentions, transcrições, links)
+2) Gerar Crisis Brief (1 pág) + timeline
+3) Selecionar playbook
+4) Gerar drafts:
+   - nota curta
+   - nota média
+   - Q&A
+   - roteiro vídeo 30–45s
+5) Gerar plano 2h/24h/72h
+6) Notificar aprovador com link
+7) Após aprovação:
+   - disparar para canais
+   - criar tarefas no CRM
+   - registrar audit_log + deliveries (se aplicável)
+
+Fluxo E — Relatórios
+1) Diário: KPIs + resumo executivo + mudanças
+2) Semanal: tendências + narrativas + riscos + oportunidades
+3) Exportar PDF/Doc
+4) Enviar
+5) Registrar em deliveries

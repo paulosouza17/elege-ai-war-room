@@ -1,0 +1,33 @@
+RBAC — Papéis, permissões e regras
+
+Entidades
+- orgs: sua empresa/instância.
+- clients: clientes/campanhas (tenants).
+- users: usuários.
+- user_client_roles: vínculo usuário ↔ client com papel.
+
+Papéis (nível org)
+- SUPER_ADMIN: cria clients, gerencia integrações globais, vê tudo.
+- ORG_ADMIN (opcional): administra usuários e billing.
+
+Papéis (nível client)
+- MANAGER: configura setup, aprova versões, acessa relatórios, aprova crise (se permitido).
+- ANALYST: revisa classificação, prepara evidências, sugere ajustes.
+- OPERATOR: opera fluxo, executa envios pós-aprovação, integra CRM.
+- VIEWER/CLIENT_USER: só leitura (dashboards/relatórios).
+
+Regras obrigatórias
+- Aprovar/enviar CrisisPacket exige permissão explícita.
+- Setup/rules/playbooks só entram em “ativo” após aprovação.
+- Qualquer alteração crítica gera audit_log com before/after.
+
+Matriz resumida (exemplos)
+- VIEWER: GET dashboards, GET deliveries, GET crisis_packets (somente leitura).
+- OPERATOR: + POST notifications (somente após aprovado), + POST tasks no CRM.
+- ANALYST: + POST/PUT classifications (quando revisão manual existir), + anexar evidências.
+- MANAGER: + PUT setup, + aprovar setup, + aprovar crise, + gerenciar quiet hours.
+- SUPER_ADMIN: + CRUD clients, + integrações, + acesso cross-tenant (com trilha auditável).
+
+Implementação recomendada
+- Middleware: checkPermission(action, entity, client_id).
+- Banco: roles_permissions com actions (strings) e scope (org/client).

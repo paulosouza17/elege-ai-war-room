@@ -1,0 +1,53 @@
+
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+import path from 'path';
+import { AIService } from '../services/aiService';
+
+// Load env from backend root
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+    }
+});
+
+async function testFullService() {
+    console.log('--- Testing AI Service Full Flow ---');
+
+    // 1. Get Config
+    const clientId = 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22';
+    const { data: aiConfig, error } = await supabase
+        .from('ai_configs')
+        .select('*')
+        .eq('client_id', clientId)
+        .single();
+
+    if (error || !aiConfig) {
+        console.error('Config not found');
+        return;
+    }
+
+    console.log(`Using Provider: ${aiConfig.provider}`);
+    console.log(`Using Model: ${aiConfig.model}`);
+
+    // 2. Init Service
+    const aiService = new AIService({
+        // provider: aiConfig.provider as any, // TS Error: provider not in SupabaseClient type
+        apiKey: aiConfig.api_key,
+        model: aiConfig.model
+    });
+
+    // 3. Analyze
+    const text = "A greve dos rodoviários em São Paulo paralisou 50% da frota, gerando caos na cidade.";
+    console.log(`Analyzing: "${text}"`);
+
+    const result = await aiService.analyzeText(text);
+    console.log('\nResult:', JSON.stringify(result, null, 2));
+}
+
+testFullService();

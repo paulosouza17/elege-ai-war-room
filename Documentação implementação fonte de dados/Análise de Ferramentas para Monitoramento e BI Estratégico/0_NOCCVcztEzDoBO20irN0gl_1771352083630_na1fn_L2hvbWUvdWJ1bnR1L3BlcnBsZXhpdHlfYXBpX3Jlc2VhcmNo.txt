@@ -1,0 +1,167 @@
+Pesquisa sobre a API da Perplexity AI
+
+## Endpoints e Funcionalidades da API
+
+### POST /v1/responses
+
+Cria uma resposta para o input fornecido com busca opcional na web e raciocínio.
+
+## Tipos de Input
+
+### POST /v1/responses
+
+- `input` (string, obrigatório): Conteúdo de entrada - uma string ou um array de itens de entrada.
+- `instructions` (string): Instruções do sistema para o modelo.
+- `language_preference` (string): Código de idioma ISO 639-1 para o idioma da resposta.
+- `max_output_tokens` (integer): Máximo de tokens a serem gerados.
+- `max_steps` (integer): Número máximo de etapas do loop de pesquisa.
+- `model` (string): ID do modelo no formato provedor/modelo (por exemplo, "xai/grok-4-1", "openai/gpt-4o").
+- `models` (array of strings): Cadeia de fallback de modelos.
+- `preset` (string): Nome da configuração predefinida (por exemplo, "fast-search", "pro-search", "deep-research").
+- `reasoning` (object): Configuração de raciocínio.
+- `response_format` (object): Especifica o formato de saída desejado para a resposta do modelo.
+- `stream` (boolean): Se verdadeiro, retorna um stream SSE em vez de JSON.
+- `tools` (array of objects): Ferramentas disponíveis para o modelo (WebSearchTool, FetchUrlTool, FunctionTool).
+
+## Tipos de Output/Resposta
+
+### POST /v1/responses
+
+Retorna um objeto JSON com os seguintes campos:
+
+- `created_at` (integer): Timestamp da criação.
+- `id` (string): ID da resposta.
+- `model` (string): Modelo utilizado.
+- `object` (string): Tipo de objeto ('response').
+- `output` (array of objects): Saída da resposta, que pode ser uma mensagem, resultados de pesquisa, etc.
+- `status` (string): Status da resposta ('completed', 'failed', 'in_progress', 'requires_action').
+- `error` (object): Informações de erro, se houver.
+- `usage` (object): Detalhes de uso de tokens e custo.
+
+
+### POST /search
+
+Pesquisa na web e retorna conteúdo relevante da página da web.
+
+## Tipos de Input
+
+### POST /search
+
+- `query` (string, obrigatório): A consulta de pesquisa.
+- `max_tokens` (integer, default: 10000): Máximo de tokens.
+- `max_tokens_per_page` (integer, default: 4096): Máximo de tokens por página.
+- `max_results` (integer, default: 10): Máximo de resultados.
+- `search_domain_filter` (array of strings): Filtro de domínio de pesquisa.
+- `search_language_filter` (array of strings): Filtro de idioma de pesquisa.
+- `search_recency_filter` (enum: 'hour', 'day', 'week', 'month', 'year'): Filtro de recentidade da pesquisa.
+- `search_after_date_filter` (string): Filtro de data posterior à pesquisa.
+- `search_before_date_filter` (string): Filtro de data anterior à pesquisa.
+- `last_updated_before_filter` (string): Filtro de antes da última atualização.
+- `last_updated_after_filter` (string): Filtro de depois da última atualização.
+- `search_mode` (enum: 'web', 'academic', 'sec'): Modo de pesquisa.
+- `country` (string): País.
+- `display_server_time` (boolean, default: false): Exibir hora do servidor.
+
+## Tipos de Output/Resposta
+
+### POST /search
+
+Retorna um objeto JSON com os seguintes campos:
+
+- `results` (array of objects): Resultados da pesquisa, cada um contendo `title`, `url`, `snippet`, `date` e `last_updated`.
+- `id` (string): ID da pesquisa.
+- `server_time` (string): Hora do servidor.
+
+
+### POST /chat/completions
+
+Gera uma resposta de conclusão de chat para a conversa fornecida.
+
+## Tipos de Input
+
+### POST /chat/completions
+
+- `model` (enum, obrigatório): Modelo a ser usado (por exemplo, `sonar-pro`).
+- `messages` (array of objects, obrigatório): Uma lista de mensagens que compõem a conversa.
+- `max_tokens` (integer): O número máximo de tokens a serem gerados.
+- `stream` (boolean, default: false): Se deve transmitir a resposta.
+- `stop` (string): Sequências em que a API deixará de gerar mais tokens.
+- `response_format` (object): Formato da resposta.
+- `web_search_options` (object): Opções de pesquisa na web.
+- `search_mode` (enum): Modo de pesquisa.
+- `return_images` (boolean): Se deve retornar imagens.
+- `return_related_questions` (boolean): Se deve retornar perguntas relacionadas.
+- `enable_search_classifier` (boolean): Ativar o classificador de pesquisa.
+- `disable_search` (boolean): Desativar a pesquisa.
+- `search_domain_filter` (array of strings): Filtro de domínio de pesquisa.
+- `search_language_filter` (array of strings): Filtro de idioma de pesquisa.
+- `search_recency_filter` (enum): Filtro de recentidade da pesquisa.
+- `search_after_date_filter` (string): Filtro de data posterior à pesquisa.
+- `search_before_date_filter` (string): Filtro de data anterior à pesquisa.
+- `last_updated_before_filter` (string): Filtro de antes da última atualização.
+- `last_updated_after_filter` (string): Filtro de depois da última atualização.
+- `image_format_filter` (array of strings): Filtro de formato de imagem.
+- `image_domain_filter` (array of strings): Filtro de domínio de imagem.
+- `safe_search` (boolean, default: true): Pesquisa segura.
+- `stream_mode` (enum, default: full): Modo de stream.
+- `reasoning_effort` (enum): Esforço de raciocínio.
+- `language_preference` (string): Preferência de idioma.
+
+## Tipos de Output/Resposta
+
+### POST /chat/completions
+
+Retorna um objeto JSON com os seguintes campos:
+
+- `id` (string): ID da conclusão.
+- `model` (string): Modelo usado.
+- `created` (integer): Timestamp da criação.
+- `choices` (array of objects): Lista de conclusões.
+- `usage` (object): Informações de uso.
+- `object` (string, default: chat.completion): Tipo de objeto.
+- `citations` (array of strings): Citações.
+- `search_results` (array of objects): Resultados da pesquisa.
+- `type` (enum): Tipo de resposta.
+- `status` (enum): Status da resposta.
+
+
+## Planos e Limitações de API
+
+A API da Perplexity oferece um modelo de preços transparente e baseado em tokens, sem marcação sobre as taxas diretas do provedor para modelos de terceiros. Os custos são divididos em várias categorias, incluindo preços de modelo, preços de ferramentas, preços de API de pesquisa e preços de API Sonar.
+
+### Agent API
+
+- **Modelos de Terceiros**: Acesso a modelos da OpenAI, Anthropic, Google e xAI com preços baseados em tokens e taxas diretas do provedor.
+- **Ferramentas**: Custos adicionais para ferramentas como `web_search` (US$ 0,005 por invocação) e `fetch_url` (US$ 0,0005 por invocação).
+
+### Search API
+
+- **Preço**: US$ 5,00 por 1.000 solicitações.
+- **Custos de Tokens**: Não há custos adicionais baseados em tokens para a API de pesquisa.
+
+### Sonar API
+
+- **Custo Total**: O custo total por consulta é a soma dos custos dos tokens e uma taxa de solicitação que varia de acordo com o tamanho do contexto da pesquisa.
+- **Preços dos Tokens**: Variam de acordo com o modelo (Sonar, Sonar Pro, Sonar Reasoning Pro, Sonar Deep Research) e se são tokens de entrada, saída, citação ou raciocínio.
+
+### Embeddings API
+
+- **Standard Embeddings**: Preços variam de US$ 0,004 a US$ 0,03 por 1 milhão de tokens, dependendo do modelo.
+- **Contextualized Embeddings**: Preços variam de US$ 0,008 a US$ 0,05 por 1 milhão de tokens, dependendo do modelo.
+
+Para obter informações detalhadas sobre limites de taxa e níveis de uso, os usuários são direcionados para a página de Limites de Taxa e Níveis de Uso na documentação.
+
+
+## Valor para Monitoramento 360
+
+A API da Perplexity AI pode agregar um valor significativo a um sistema de monitoramento 360 que abrange TV, rádio, redes sociais, portais de notícias e utiliza IA para busca ampla. A capacidade da API de realizar pesquisas em tempo real na web e sintetizar informações de várias fontes a torna uma ferramenta poderosa para o monitoramento de mídia.
+
+Com os endpoints `search` e `chat/completions`, o sistema de monitoramento pode:
+
+- **Monitorar Notícias e Menções em Tempo Real**: Utilizar a API para pesquisar continuamente menções de marcas, produtos ou palavras-chave em portais de notícias e redes sociais, fornecendo uma visão atualizada da presença na mídia.
+- **Análise de Sentimento e Opinião**: Ao combinar a busca com os modelos de linguagem da Perplexity, é possível analisar o sentimento e a opinião pública em relação a um determinado tópico, marca ou evento.
+- **Enriquecimento de Dados**: A API pode ser usada para enriquecer os dados coletados de outras fontes (TV, rádio) com informações contextuais e análises mais profundas da web.
+- **Identificação de Tendências**: A capacidade de filtrar por data e relevância permite a identificação de tendências emergentes e a análise de como as narrativas evoluem ao longo do tempo.
+- **Busca Ampla e Inteligente**: A IA da Perplexity pode ser usada para realizar buscas amplas e inteligentes, descobrindo conexões e insights que seriam difíceis de encontrar com métodos de pesquisa tradicionais.
+
+A flexibilidade da API, com seus diversos parâmetros de filtragem e a capacidade de usar diferentes modelos de linguagem, permite que o sistema de monitoramento seja altamente personalizável e adaptado às necessidades específicas de cada cliente.

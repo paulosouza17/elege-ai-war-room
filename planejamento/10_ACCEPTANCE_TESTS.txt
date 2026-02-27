@@ -1,0 +1,40 @@
+CRITÉRIOS DE ACEITE (checklist por feature)
+
+Multi-tenant e RBAC
+- [ ] Usuário do client A não acessa dados do client B.
+- [ ] RLS impede SELECT e UPDATE cross-tenant.
+- [ ] Rotas críticas exigem permissões corretas.
+- [ ] Audit log registra before/after para setup/rules/playbooks/crisis.
+
+Ingestão
+- [ ] Payload inválido é rejeitado com erro claro.
+- [ ] Dedup evita duplicatas por external_id e por hash.
+- [ ] Reprocessar o mesmo payload não altera métricas (idempotente).
+
+Classificação
+- [ ] Cada mention tem classification completa (tema/sentimento/narrativa/risco/ confiança).
+- [ ] Prompt version é armazenada.
+- [ ] Falha do LLM aciona fallback e não interrompe pipeline.
+
+Rules/Alertas
+- [ ] Regras por janela funcionam (15m/1h/6h).
+- [ ] Alertas amarelo/vermelho criados com payload_json e gatilho.
+- [ ] Notificações respeitam quiet hours e rate limit.
+
+CrisisPacket
+- [ ] Pacote vermelho cria status aguardando_aprovação.
+- [ ] Não é possível enviar sem approved_by/approved_at.
+- [ ] Evidências e drafts são gerados e editáveis (se permitido).
+- [ ] Envio cria tasks no CRM (quando habilitado).
+
+Dashboard
+- [ ] Visão Geral e Timeline carregam com paginação e filtros.
+- [ ] CrisisPacket UI suporta aprovar/editar/enviar.
+- [ ] Setup & Versões mostra diff e permite rollback (com permissão).
+
+Relatórios
+- [ ] Relatório semanal e diário gerados e enviados.
+- [ ] deliveries registra arquivo_url + sent_at.
+
+Scenario Engine (V2)
+- [ ] Rodar replay histórico e comparar métricas A/B.

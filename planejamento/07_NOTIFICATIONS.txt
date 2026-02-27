@@ -1,0 +1,22 @@
+NOTIFICAÇÕES — Canais, regras e limites
+
+Canais suportados
+- WhatsApp: alertas e crisis packets
+- Slack: alertas internos
+- Email: relatórios, backups e alertas
+
+Regras
+- severidade define canal e urgência
+- quiet hours configurável por cliente
+- rate limit por canal e por severidade
+- templates por tipo (alerta, pacote, relatório)
+
+Requisitos de implementação
+- tabela/log de notificações (opcional) ou usar deliveries + audit
+- retries com backoff
+- circuit breaker (se canal falhar, alternar para email)
+- “unsubscribe”/canais autorizados por client
+
+Critérios mínimos (MVP)
+- WhatsApp ou Email funcionando para alertas amarelo/vermelho
+- Email funcionando para relatórios

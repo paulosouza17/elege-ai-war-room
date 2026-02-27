@@ -1,0 +1,26 @@
+RELATÓRIOS — Diário/Semanal/Crise
+
+Relatório Diário
+- KPIs do dia
+- resumo executivo
+- mudanças relevantes
+- top narrativas e fontes
+- alertas ocorridos (resumo)
+
+Relatório Semanal
+- tendências
+- viradas de narrativa (V2 pode melhorar com clustering)
+- riscos e oportunidades
+- recomendações de ajuste de setup/regras
+
+Relatório de Crise (quando aplicável)
+- linha do tempo
+- evidências principais
+- decisões tomadas e ações executadas
+- pacote final enviado (referência)
+
+Implementação
+- Templates HTML (versionados)
+- Render para PDF/Doc
+- Armazenar no storage
+- Registrar deliveries com link e timestamp de envio

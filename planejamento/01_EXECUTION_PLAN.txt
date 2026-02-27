@@ -1,0 +1,127 @@
+01) ETAPA 0 — Fundação (Setup de projeto e infra)
+Objetivo: garantir base estável para desenvolvimento e deploy.
+Entregas:
+- Repositório (monorepo ou multi-repo) com padrões de lint/test.
+- Postgres (com suporte a RLS), Redis, Storage (S3 compatível), Observabilidade (logs + erros).
+- Padronização de eventos (event_type, tenant_id, entity_id, payload, created_at).
+- CI/CD básico (build + tests + deploy staging).
+Checklist:
+- [ ] Definir stack (API + Worker + Web) e ambientes (dev/staging/prod).
+- [ ] Provisionar Postgres + Redis + Storage + Secrets manager.
+- [ ] Criar convenções: ids (UUID), timestamps, soft delete (opcional).
+- [ ] Implementar healthcheck e version endpoint.
+Critérios de aceite:
+- Infra sob controle (IaC opcional), deploy de um “hello” API + worker funcionando.
+
+02) ETAPA 1 — Multi-tenant, Auth, RBAC e Auditoria
+Objetivo: segurança e isolamento desde o início.
+Entregas:
+- Org/Client/User + papéis (Super Admin, Manager, Analyst, Operator, Viewer).
+- RLS por client_id no Postgres.
+- Middleware no backend que:
+  - valida JWT
+  - resolve tenant/client
+  - aplica permissões por rota/ação
+- Audit log para alterações críticas (setup/rules/playbooks/crisis approval).
+Checklist:
+- [ ] Criar tabelas: orgs, clients, users, user_client_roles, roles_permissions, audit_log.
+- [ ] Implementar policies RLS: SELECT/INSERT/UPDATE/DELETE.
+- [ ] Implementar “actor context”: actor_user_id, client_id.
+- [ ] Implementar endpoints: login (ou SSO opcional), user mgmt (admin).
+Critérios de aceite:
+- Usuário A não vê dados do client B.
+- Toda alteração de setup/regras/pacote gera audit_log.
+
+03) ETAPA 2 — Ingestão (Elege.AI + Adapters de fontes externas)
+Objetivo: pipeline confiável de entrada, normalização e dedup.
+Entregas:
+- API de Ingestão: webhook/REST com token por cliente.
+- Adapters (provider adapters) que convertem input externo → schema interno de mentions.
+- Dedup por (tenant_id, external_id) e por hash.
+- Enfileirar job classify_mention.
+Checklist:
+- [ ] Definir “Ingestion Contract” (schema mínimo).
+- [ ] Implementar validação (Zod/Joi/Pydantic).
+- [ ] Implementar normalização (campos + metadata_json).
+- [ ] Implementar filas (Redis Queue) e idempotência.
+Critérios de aceite:
+- 1000 mentions entram sem duplicar; reprocessamento não gera duplicatas.
+
+04) ETAPA 3 — Classificação (LLM + regras) + Persistência
+Objetivo: classificar tema/sentimento/narrativa/risco e gerar base para rules.
+Entregas:
+- Serviço de classificação: prompt versionado + guardrails + rationale.
+- Salvar classifications.
+- Atualizar agregados (KPIs) e séries temporais.
+- Enfileirar job evaluate_rules.
+Checklist:
+- [ ] Definir taxonomy (temas, narrativas, tags).
+- [ ] Definir risco_score (0–100) + confiança.
+- [ ] Implementar fallback (regras simples) se LLM falhar.
+Critérios de aceite:
+- Toda mention processada tem classification completa + confiança + rationale.
+
+05) ETAPA 4 — Rules Engine + Alertas
+Objetivo: detectar severidade por janelas e criar alertas acionáveis.
+Entregas:
+- Cálculos por janela (15m/1h/6h) + baseline.
+- Regras configuráveis (rulesets versionados).
+- Criar alerts (verde/amarelo/vermelho) e disparar notificações (MVP: email + whatsapp).
+Checklist:
+- [ ] Implementar agregações e baseline (materialized views ou tabela).
+- [ ] Implementar gatilhos: pico, fonte crítica, termo sensível, adversário.
+- [ ] Implementar quiet hours + rate limit.
+Critérios de aceite:
+- Alertas gerados corretamente para cenários de teste (pico e termo sensível).
+
+06) ETAPA 5 — CrisisPacket + Aprovação Humana (War Mode)
+Objetivo: diferencial do produto; pacotes completos e auditáveis.
+Entregas:
+- CrisisPacket builder (evidências + brief + drafts + plano 2h/24h/72h).
+- Estados: draft → aguardando_aprovação → aprovado → enviado.
+- UI/API de aprovação e registro de ações.
+- Após aprovação: enviar para canais + criar tarefas no CRM.
+Checklist:
+- [ ] Implementar coleta de evidências (top mentions, links, transcrições).
+- [ ] Implementar geração de drafts e playbooks.
+- [ ] Implementar gate de aprovação obrigatório para “vermelho”.
+Critérios de aceite:
+- Nenhum pacote vermelho é enviado sem approved_by/approved_at.
+
+07) ETAPA 6 — Dashboard War Room (V1)
+Objetivo: operação diária e war room.
+Entregas:
+- Tela Visão Geral (severidade atual, volume por canal, tendência, narrativa).
+- Tela Timeline de Crise (eventos, menções-chave, first publisher vs amplifier).
+- Tela CrisisPacket (resumo, evidências, drafts, plano, aprovar/editar/enviar).
+Checklist:
+- [ ] Implementar paginação + filtros.
+- [ ] Garantir performance com índices e agregações.
+Critérios de aceite:
+- Carregamento rápido em períodos longos (últimos 7 dias) com paginação.
+
+08) ETAPA 7 — Relatórios e Deliveries
+Objetivo: entregas recorrentes (diário/semanal/crise).
+Entregas:
+- Templates HTML; geração PDF/Doc; envio e registro.
+Checklist:
+- [ ] Agendamento (cron) para diário/semanal.
+- [ ] Armazenamento seguro + links expiráveis (opcional).
+Critérios de aceite:
+- Um relatório semanal e um diário são gerados e registrados em deliveries.
+
+09) ETAPA 8 — Versionamento de Setup + Diff + Rollback
+Objetivo: mudança controlada do perímetro por cliente.
+Entregas:
+- setups versionados, setup_entities e diffs.
+- Aprovação e rollback.
+Critérios de aceite:
+- Trocar v1→v2 sem perder histórico; diff compreensível; rollback funcional.
+
+10) ETAPA 9 — Scenario Analysis Engine (V2)
+Objetivo: simular “what-if”, backtest e otimização (alertas x custo x falsos positivos).
+Entregas:
+- scenarios + scenario_runs
+- replay histórico e comparativos
+Critérios de aceite:
+- Rodar cenário B (rules/setup alternativo) e comparar alertas, severidade e custo.

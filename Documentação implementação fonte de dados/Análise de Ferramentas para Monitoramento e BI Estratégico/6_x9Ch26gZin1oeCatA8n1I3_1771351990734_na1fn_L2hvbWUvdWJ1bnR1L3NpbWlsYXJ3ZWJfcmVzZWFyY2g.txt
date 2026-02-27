@@ -1,0 +1,185 @@
+# Pesquisa sobre a API SimilarWeb
+
+## Visão Geral
+
+A API SimilarWeb permite o acesso a insights sobre análise da web e inteligência de mercado online. A integração da API em aplicações e fluxos de trabalho permite extrair dados valiosos para aprimorar análises, relatórios e processos de tomada de decisão.
+
+**Principais benefícios:**
+
+*   **Aumentar a produtividade:** Tomar decisões mais rápidas e baseadas em dados, unificando todas as fontes de dados.
+*   **Identificar oportunidades de crescimento:** Analisar milhares de sites e aplicativos simultaneamente.
+*   **Economizar tempo:** Gerar relatórios automatizados com as métricas mais importantes, sem necessidade de conhecimentos de programação.
+
+A API é um complemento de assinatura. Para começar a aceder aos dados através da API, é necessário contactar o Gestor de Conta SimilarWeb.
+
+**Ainda não é cliente SimilarWeb?** Existe a opção de se inscrever e iniciar um teste gratuito.
+
+## Endpoints da API
+
+A documentação da API SimilarWeb está organizada em várias categorias, cada uma com múltiplos endpoints. A seguir, uma lista das principais categorias e exemplos de endpoints:
+
+### Tráfego e Engajamento (Total, Desktop e Mobile Web)
+
+*   **Visits - Total (Desktop & Mobile):** Retorna o número estimado de visitas a um determinado domínio, combinando tráfego de desktop e mobile. Os dados históricos remontam a 37 meses, dependendo da subscrição.
+*   **Pages Per Visit - Total (Desktop & Mobile):** Retorna o número médio de páginas por visita.
+*   **Average Visit Duration - Total (Desktop & Mobile):** Retorna a duração média da visita.
+*   **Bounce Rate - Total (Desktop & Mobile):** Retorna a taxa de rejeição.
+*   **Page Views - Total (Desktop & Mobile):** Retorna o número total de visualizações de página.
+*   **Desktop vs. Mobile Split:** Retorna a divisão do tráfego entre desktop e mobile.
+*   **Deduplicated Audience:** Retorna a audiência única.
+*   **Global Rank:** Retorna o ranking global do site.
+*   **Country Rank:** Retorna o ranking do site em um país específico.
+*   **Industry Rank:** Retorna o ranking do site em uma indústria específica.
+*   **Geography:** Retorna a distribuição geográfica do tráfego.
+
+### Canais de Marketing (Desktop, Mobile Web e Total)
+
+*   **Marketing Channels:** Retorna a distribuição do tráfego por canal de marketing (ex: Direto, E-mail, Referências, Social, Orgânico, Pago).
+
+### Análise de Audiência
+
+*   **Audience Interests:** Retorna os interesses da audiência de um site.
+*   **Audience Overlap:** Retorna a sobreposição de audiência entre sites.
+
+### Estrutura do Site
+
+*   **Subdomains:** Retorna os subdomínios de um site.
+*   **Pages:** Retorna as páginas mais populares de um site.
+
+### Análise de Conversão
+
+*   **Conversion Funnel:** Retorna a análise do funil de conversão.
+
+### Visão Geral do Site
+
+*   **Website Overview:** Retorna uma visão geral completa de um site.
+
+### Principais Sites
+
+*   **Top Sites:** Retorna os principais sites em uma categoria ou país.
+
+### Palavras-chave
+
+*   **Keywords Overview:** Retorna uma visão geral das palavras-chave de um site.
+*   **Website Keywords:** Retorna as palavras-chave de um site.
+*   **Landing Pages:** Retorna as principais páginas de destino de um site.
+
+### Metadados
+
+*   **List Categories:** Retorna a lista de categorias disponíveis.
+
+### Aplicativos
+
+*   **Store Downloads:** Retorna o número de downloads de um aplicativo.
+*   **Rankings:** Retorna os rankings de um aplicativo.
+*   **Usage and Sessions:** Retorna o uso e as sessões de um aplicativo.
+*   **Retention:** Retorna a taxa de retenção de um aplicativo.
+*   **Audience:** Retorna a audiência de um aplicativo.
+*   **Top Charts:** Retorna os principais aplicativos em uma categoria ou país.
+
+### Empresas
+
+*   **List Companies:** Retorna a lista de empresas.
+*   **Company Analysis:** Retorna a análise de uma empresa.
+
+### Tecnologias de Sites
+
+*   **Website Technologies:** Retorna as tecnologias usadas por um site.
+
+### Batch API
+
+*   **Request Report:** Solicita um relatório em lote.
+*   **Request Status:** Verifica o status de um relatório em lote.
+
+### Integrações
+
+*   **S3 Integration:** Integração com o Amazon S3.
+*   **Google Cloud Storage (GCS) Integration:** Integração com o Google Cloud Storage.
+*   **Snowflake Integration:** Integração com o Snowflake.
+
+## Tipos de Input e Output
+
+A API da SimilarWeb utiliza parâmetros de consulta (query parameters) para especificar a requisição e retorna os dados em formato JSON ou XML.
+
+### Tipos de Input (Parâmetros)
+
+Os parâmetros de entrada variam de acordo com o endpoint, mas alguns dos mais comuns incluem:
+
+*   **domain_name (string, obrigatório):** O domínio do site de interesse (ex: `amazon.com`).
+*   **api_key (string, obrigatório):** A chave da API do usuário.
+*   **start_date (string):** A data de início da análise (formato: `YYYY-MM`).
+*   **end_date (string):** A data de fim da análise (formato: `YYYY-MM`).
+*   **country (string, obrigatório):** O código do país de duas letras (ISO 3166-1 alfa-2) ou `world` para dados mundiais.
+*   **granularity (string, obrigatório):** A granularidade dos dados (`daily`, `weekly` ou `monthly`).
+*   **main_domain_only (boolean):** Se `true`, retorna dados apenas para o domínio principal, excluindo subdomínios.
+*   **format (string):** O formato da resposta (`json` ou `xml`).
+*   **show_verified (boolean):** Se `true`, mostra dados verificados do Google Analytics quando disponíveis.
+*   **mtd (boolean):** Se `true`, a data final é definida para o último dia disponível (mês até a data).
+*   **engaged_only (boolean):** Se `true`, os dados são filtrados por "visitas engajadas".
+
+### Tipos de Output (Resposta)
+
+A resposta da API é geralmente um objeto JSON contendo metadados sobre a requisição e os dados solicitados. A estrutura da resposta varia de acordo com o endpoint, mas um exemplo comum para o endpoint de "Visits" é:
+
+```json
+{
+  "meta": {
+    "request": {
+      "granularity": "Monthly",
+      "main_domain_only": false,
+      "mtd": false,
+      "show_verified": false,
+      "state": null,
+      "format": "json",
+      "domain": "amazon.com",
+      "start_date": "2023-01-01",
+      "end_date": "2023-03-31",
+      "country": "us"
+    },
+    "status": "Success",
+    "last_updated": "2023-05-31"
+  },
+  "visits": [
+    {
+      "date": "2023-01-01",
+      "visits": 1999194357.4757116
+    },
+    {
+      "date": "2023-02-01",
+      "visits": 1704668417.8515935
+    },
+    {
+      "date": "2023-03-01",
+      "visits": 1881618852.1494892
+    }
+  ]
+}
+```
+
+O objeto `meta` contém informações sobre a requisição, como os parâmetros utilizados, o status da requisição e a data da última atualização dos dados. O objeto de dados (neste caso, `visits`) contém um array de objetos, cada um representando um ponto de dados com a data e o valor da métrica solicitada.
+
+## Planos e Limitações
+
+A API da SimilarWeb é um produto de assinatura e pode ser adquirida como um produto autônomo, sem a necessidade de uma assinatura completa da plataforma. Para obter informações sobre preços, é necessário entrar em contato com a equipe de vendas da SimilarWeb. 
+
+Embora não haja um plano gratuito para a API, a SimilarWeb oferece um período de teste gratuito da plataforma, que pode incluir acesso à API. Além disso, a extensão do Chrome da SimilarWeb fornece acesso gratuito a alguns dados básicos.
+
+A principal limitação da API é o limite de taxa de 10 requisições por segundo por conta. Exceder esse limite resultará em um erro 429 (Too Many Requests).
+
+## Valor Agregado para Monitoramento 360
+
+A API da SimilarWeb pode agregar um valor significativo a um sistema de monitoramento 360 que já acompanha TV, Rádios, Redes Sociais e Portais de Notícias. A integração dos dados da SimilarWeb permitiria uma visão mais completa e aprofundada do cenário digital, complementando as informações dos outros meios.
+
+Os principais pontos de valor são:
+
+*   **Análise Competitiva Abrangente:** Além de monitorar a presença dos concorrentes nos meios tradicionais e redes sociais, a API da SimilarWeb permite analisar em profundidade o desempenho dos seus sites e aplicativos. Métricas como tráfego total, fontes de tráfego, engajamento do usuário, ranking e palavras-chave fornecem uma visão detalhada da estratégia digital dos concorrentes.
+
+*   **Inteligência de Audiência:** A API pode fornecer dados demográficos e de interesse da audiência de portais de notícias e outros sites relevantes. Essa informação é crucial para entender o perfil do público que consome determinados tipos de conteúdo, permitindo um direcionamento mais eficaz de campanhas e uma melhor adequação do conteúdo.
+
+*   **Identificação de Tendências e Oportunidades:** Ao analisar as palavras-chave que mais geram tráfego para os portais de notícias e concorrentes, é possível identificar tendências de busca e tópicos de interesse do público em tempo real. Isso permite que o sistema de monitoramento 360 antecipe pautas e identifique oportunidades de conteúdo.
+
+*   **Mensuração de Performance Digital:** Para as marcas que possuem seus próprios portais ou sites, a API da SimilarWeb é uma ferramenta poderosa para medir a performance e o ROI de suas estratégias digitais. É possível comparar o desempenho com o de concorrentes e identificar pontos de melhoria.
+
+*   **Análise Cross-media:** Ao cruzar os dados da SimilarWeb com os dados de monitoramento de TV e Rádio, é possível analisar o impacto de campanhas offline no tráfego online. Por exemplo, é possível medir o aumento no tráfego de um site após a veiculação de um comercial na TV.
+
+*   **Busca Ampla com IA:** A IA pode utilizar os dados da API para enriquecer suas análises e gerar insights mais sofisticados. Por exemplo, a IA pode correlacionar o sentimento de notícias sobre uma marca com a variação no tráfego do seu site, ou identificar padrões de comportamento do consumidor que não seriam perceptíveis com a análise de um único meio.

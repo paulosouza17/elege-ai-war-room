@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Mental — War Room Elege.AI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0e1a;
+    color: #e0e6f0;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #canvas {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    cursor: grab;
+    position: relative;
+  }
+
+  #canvas:active { cursor: grabbing; }
+
+  #map-container {
+    position: relative;
+    width: 4200px;
+    height: 3200px;
+    transform-origin: center center;
+  }
+
+  /* HEADER */
+  .header-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: linear-gradient(135deg, rgba(10,14,26,0.95), rgba(20,28,50,0.95));
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(99,102,241,0.3);
+    padding: 12px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-bar h1 {
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.3px;
+  }
+
+  .header-bar .subtitle {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 400;
+  }
+
+  .zoom-controls {
+    display: flex;
+    gap: 8px;
+  }
+
+  .zoom-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(99,102,241,0.3);
+    background: rgba(30,35,60,0.8);
+    color: #818cf8;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .zoom-btn:hover {
+    background: rgba(99,102,241,0.2);
+    border-color: #818cf8;
+  }
+
+  /* LEGEND */
+  .legend {
+    position: fixed;
+    bottom: 20px; left: 20px;
+    z-index: 100;
+    background: rgba(15,20,40,0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 16px;
+    padding: 16px 20px;
+    font-size: 11px;
+    max-width: 280px;
+  }
+
+  .legend h3 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #818cf8;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* CENTER NODE */
+  .center-node {
+    position: absolute;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #4f46e5, #1e1b4b);
+    box-shadow: 0 0 80px rgba(79,70,229,0.5), 0 0 160px rgba(79,70,229,0.2), inset 0 0 40px rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+    left: 1970px; top: 1470px;
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 80px rgba(79,70,229,0.5), 0 0 160px rgba(79,70,229,0.2); }
+    50% { box-shadow: 0 0 100px rgba(79,70,229,0.7), 0 0 200px rgba(79,70,229,0.3); }
+  }
+
+  .center-node .icon { font-size: 36px; margin-bottom: 8px; }
+  .center-node .title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
+  .center-node .sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; font-weight: 400; }
+
+  /* PILLAR NODES */
+  .pillar {
+    position: absolute;
+    width: 220px;
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    z-index: 8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid;
+  }
+
+  .pillar:hover {
+    transform: scale(1.05);
+    z-index: 20;
+  }
+
+  .pillar .pillar-letter {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 4px;
+  }
+
+  .pillar .pillar-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+
+  .pillar .pillar-obj {
+    font-size: 10px;
+    opacity: 0.7;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  /* BRANCH NODES */
+  .branch {
+    position: absolute;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    z-index: 6;
+    border: 1px solid;
+    max-width: 200px;
+    transition: all 0.2s;
+  }
+
+  .branch:hover {
+    transform: translateY(-2px);
+    z-index: 15;
+  }
+
+  .branch .branch-code {
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  /* SUB-BRANCH */
+  .sub-branch {
+    position: absolute;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.3;
+    z-index: 5;
+    border: 1px solid;
+    max-width: 160px;
+    opacity: 0.85;
+  }
+
+  /* META NODES (Direcionamento / Automação) */
+  .meta-node {
+    position: absolute;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.3;
+    z-index: 4;
+    max-width: 180px;
+    border: 1px dashed;
+    opacity: 0.75;
+  }
+
+  .meta-node .meta-label {
+    font-weight: 700;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+
+  /* EXTRA NODES (Arquitetura, Tech, Equipe, Roadmap) */
+  .extra-pillar {
+    position: absolute;
+    width: 200px;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    z-index: 7;
+    border: 2px solid;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .extra-pillar:hover { transform: scale(1.05); z-index: 20; }
+
+  .extra-pillar .ep-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .extra-item {
+    position: absolute;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.3;
+    z-index: 5;
+    border: 1px solid;
+    max-width: 170px;
+  }
+
+  /* SVG LINES */
+  svg.connections {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* COLOR THEMES */
+  /* Pilar A - Cyan */
+  .theme-a { background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05)); border-color: rgba(6,182,212,0.5); color: #cffafe; }
+  .theme-a .pillar-letter { color: #06b6d4; }
+  .branch-a { background: rgba(6,182,212,0.08); border-color: rgba(6,182,212,0.3); color: #a5f3fc; }
+  .meta-a { background: rgba(6,182,212,0.05); border-color: rgba(6,182,212,0.2); color: #67e8f9; }
+
+  /* Pilar B - Emerald */
+  .theme-b { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05)); border-color: rgba(16,185,129,0.5); color: #d1fae5; }
+  .theme-b .pillar-letter { color: #10b981; }
+  .branch-b { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3); color: #a7f3d0; }
+  .meta-b { background: rgba(16,185,129,0.05); border-color: rgba(16,185,129,0.2); color: #6ee7b7; }
+
+  /* Pilar C - Amber */
+  .theme-c { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); border-color: rgba(245,158,11,0.5); color: #fef3c7; }
+  .theme-c .pillar-letter { color: #f59e0b; }
+  .branch-c { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); color: #fde68a; }
+  .meta-c { background: rgba(245,158,11,0.05); border-color: rgba(245,158,11,0.2); color: #fcd34d; }
+
+  /* Pilar D - Rose */
+  .theme-d { background: linear-gradient(135deg, rgba(244,63,94,0.15), rgba(244,63,94,0.05)); border-color: rgba(244,63,94,0.5); color: #ffe4e6; }
+  .theme-d .pillar-letter { color: #f43f5e; }
+  .branch-d { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.3); color: #fecdd3; }
+  .meta-d { background: rgba(244,63,94,0.05); border-color: rgba(244,63,94,0.2); color: #fda4af; }
+
+  /* Pilar E - Violet */
+  .theme-e { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05)); border-color: rgba(139,92,246,0.5); color: #ede9fe; }
+  .theme-e .pillar-letter { color: #8b5cf6; }
+  .branch-e { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.3); color: #ddd6fe; }
+  .meta-e { background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.2); color: #c4b5fd; }
+  .sub-e { background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.15); color: #c4b5fd; }
+
+  /* Pilar F - Sky */
+  .theme-f { background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(56,189,248,0.05)); border-color: rgba(56,189,248,0.5); color: #e0f2fe; }
+  .theme-f .pillar-letter { color: #38bdf8; }
+  .branch-f { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.3); color: #bae6fd; }
+  .meta-f { background: rgba(56,189,248,0.05); border-color: rgba(56,189,248,0.2); color: #7dd3fc; }
+
+  /* Extra - Slate */
+  .theme-extra { background: linear-gradient(135deg, rgba(148,163,184,0.12), rgba(148,163,184,0.04)); border-color: rgba(148,163,184,0.4); color: #e2e8f0; }
+  .item-extra { background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.2); color: #cbd5e1; }
+
+  /* Roadmap - Indigo */
+  .theme-road { background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.04)); border-color: rgba(99,102,241,0.4); color: #e0e7ff; }
+  .item-road { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.2); color: #c7d2fe; }
+
+  /* Tech - Fuchsia */
+  .theme-tech { background: linear-gradient(135deg, rgba(217,70,239,0.12), rgba(217,70,239,0.04)); border-color: rgba(217,70,239,0.4); color: #fae8ff; }
+  .item-tech { background: rgba(217,70,239,0.06); border-color: rgba(217,70,239,0.2); color: #f0abfc; }
+
+  /* Equipe - Teal */
+  .theme-team { background: linear-gradient(135deg, rgba(20,184,166,0.12), rgba(20,184,166,0.04)); border-color: rgba(20,184,166,0.4); color: #ccfbf1; }
+  .item-team { background: rgba(20,184,166,0.06); border-color: rgba(20,184,166,0.2); color: #99f6e4; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    z-index: 1000;
+    background: rgba(15,20,40,0.95);
+    border: 1px solid rgba(99,102,241,0.4);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 12px;
+    max-width: 280px;
+    line-height: 1.5;
+    pointer-events: none;
+    display: none;
+    backdrop-filter: blur(16px);
+  }
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+  <div>
+    <h1>WAR ROOM ELEGE.AI — Mapa Mental</h1>
+    <div class="subtitle">Setup de Guerra — Pilares do Processo e Ramificações</div>
+  </div>
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+    <button class="zoom-btn" onclick="resetView()">⟲</button>
+  </div>
+</div>
+
+<div id="canvas">
+  <div id="map-container">
+
+    <svg class="connections" id="svg-lines"></svg>
+
+    <!-- CENTER NODE -->
+    <div class="center-node" id="center">
+      <div class="icon">⚔</div>
+      <div class="title">WAR ROOM<br>ELEGE.AI</div>
+      <div class="sub">Setup de Guerra</div>
+    </div>
+
+    <!-- ==================== PILAR A ==================== -->
+    <div class="pillar theme-a" id="pilarA" style="left:2380px; top:420px; width:230px;"
+         data-tip="Transformar lead em inteligência inicial + proposta de POC. Direcionado para Diretor Estratégico + Analista de Inteligência.">
+      <div class="pillar-letter">PILAR A</div>
+      <div class="pillar-title">Captação &<br>Diagnóstico</div>
+      <div class="pillar-obj">PR prévio — transformar lead em inteligência inicial</div>
+    </div>
+
+    <div class="branch branch-a" id="a1" style="left:2680px; top:280px;">
+      <div class="branch-code">A1</div>
+      Entrada do Lead<br><em>briefing estruturado</em>
+    </div>
+    <div class="branch branch-a" id="a2" style="left:2700px; top:380px;">
+      <div class="branch-code">A2</div>
+      Pesquisa Ampla<br><em>Perplexity + Manus</em>
+    </div>
+    <div class="branch branch-a" id="a3" style="left:2700px; top:480px;">
+      <div class="branch-code">A3</div>
+      Curadoria & Priorização<br><em>score risco/oportunidade</em>
+    </div>
+    <div class="branch branch-a" id="a4" style="left:2680px; top:580px;">
+      <div class="branch-code">A4</div>
+      Pré-relatório de Diagnóstico<br><em>para reunião</em>
+    </div>
+
+    <div class="meta-node meta-a" id="metaA1" style="left:2940px; top:310px;">
+      <div class="meta-label">Direcionamento</div>
+      Diretor Estratégico + Analista de Inteligência
+    </div>
+    <div class="meta-node meta-a" id="metaA2" style="left:2940px; top:430px;">
+      <div class="meta-label">Automação</div>
+      briefing enviado → cria pasta/cliente no DB → dispara pesquisa → gera diagnóstico
+    </div>
+
+    <!-- ==================== PILAR B ==================== -->
+    <div class="pillar theme-b" id="pilarB" style="left:2580px; top:820px; width:230px;"
+         data-tip="Converter inteligência em perímetro de monitoramento preciso. Direcionado para Operador Técnico.">
+      <div class="pillar-letter">PILAR B</div>
+      <div class="pillar-title">Setup Fechado<br>no Elege.AI</div>
+      <div class="pillar-obj">Converter inteligência em perímetro de monitoramento</div>
+    </div>
+
+    <div class="branch branch-b" id="b1" style="left:2880px; top:740px;">
+      <div class="branch-code">B1</div>
+      Consolidar Listas Finais<br><em>pessoas/temas/portais/perfis</em>
+    </div>
+    <div class="branch branch-b" id="b2" style="left:2900px; top:840px;">
+      <div class="branch-code">B2</div>
+      Criar Monitoramentos<br><em>via API Elege.AI</em>
+    </div>
+    <div class="branch branch-b" id="b3" style="left:2880px; top:940px;">
+      <div class="branch-code">B3</div>
+      Configurar Regras e Gatilhos<br><em>termos sensíveis, veículos críticos</em>
+    </div>
+
+    <div class="meta-node meta-b" id="metaB1" style="left:3140px; top:770px;">
+      <div class="meta-label">Direcionamento</div>
+      Operador Técnico
+    </div>
+    <div class="meta-node meta-b" id="metaB2" style="left:3140px; top:870px;">
+      <div class="meta-label">Automação</div>
+      aprovação do setup → n8n publica no Elege.AI → salva versão
+    </div>
+
+    <!-- ==================== PILAR C ==================== -->
+    <div class="pillar theme-c" id="pilarC" style="left:2480px; top:1280px; width:230px;"
+         data-tip="Organizar e classificar menções em tempo real. Sistema automático + Analista (supervisão).">
+      <div class="pillar-letter">PILAR C</div>
+      <div class="pillar-title">Monitoramento<br>Contínuo &<br>Classificação</div>
+      <div class="pillar-obj">Organizar e classificar menções em tempo real</div>
+    </div>
+
+    <div class="branch branch-c" id="c1" style="left:2780px; top:1200px;">
+      <div class="branch-code">C1</div>
+      Ingestão de Menções<br><em>pull / callback</em>
+    </div>
+    <div class="branch branch-c" id="c2" style="left:2800px; top:1310px;">
+      <div class="branch-code">C2</div>
+      Deduplicação &<br>Enriquecimento<br><em>fonte, autor, região, histórico</em>
+    </div>
+    <div class="branch branch-c" id="c3" style="left:2780px; top:1440px;">
+      <div class="branch-code">C3</div>
+      Classificação IA<br><em>tema, sentimento, narrativa, risco</em>
+    </div>
+
+    <div class="meta-node meta-c" id="metaC1" style="left:3060px; top:1230px;">
+      <div class="meta-label">Direcionamento</div>
+      Sistema automático + Analista (supervisão)
+    </div>
+    <div class="meta-node meta-c" id="metaC2" style="left:3060px; top:1360px;">
+      <div class="meta-label">Automação</div>
+      menção classificada → atualiza KPIs → alimenta dashboards
+    </div>
+
+    <!-- ==================== PILAR D ==================== -->
+    <div class="pillar theme-d" id="pilarD" style="left:2380px; top:1750px; width:230px;"
+         data-tip="Identificar escaladas e disparar pacote de crise. Diretor Estratégico (aprovação) + Analista (contexto).">
+      <div class="pillar-letter">PILAR D</div>
+      <div class="pillar-title">Detecção de Crise<br>War Mode</div>
+      <div class="pillar-obj">Identificar escaladas e disparar pacote de crise</div>
+    </div>
+
+    <div class="branch branch-d" id="d1" style="left:2680px; top:1680px;">
+      <div class="branch-code">D1</div>
+      Regras de Severidade<br><em>volume, fonte crítica, termo sensível, adversário</em>
+    </div>
+    <div class="branch branch-d" id="d2" style="left:2700px; top:1800px;">
+      <div class="branch-code">D2</div>
+      Crisis Brief<br><em>1 página com evidências</em>
+    </div>
+    <div class="branch branch-d" id="d3" style="left:2680px; top:1910px;">
+      <div class="branch-code">D3</div>
+      Seleção de Playbook<br><em>automática com revisão</em>
+    </div>
+
+    <div class="meta-node meta-d" id="metaD1" style="left:2940px; top:1710px;">
+      <div class="meta-label">Direcionamento</div>
+      Diretor Estratégico + Analista
+    </div>
+    <div class="meta-node meta-d" id="metaD2" style="left:2940px; top:1830px;">
+      <div class="meta-label">Automação</div>
+      severidade Vermelha → cria ticket → notifica equipe → gera CrisisPacket
+    </div>
+
+    <!-- ==================== PILAR E ==================== -->
+    <div class="pillar theme-e" id="pilarE" style="left:2080px; top:2100px; width:230px;"
+         data-tip="Recomendar ações rápidas e coerentes. Aprovação humana obrigatória. Direcionado para Diretor Estratégico.">
+      <div class="pillar-letter">PILAR E</div>
+      <div class="pillar-title">Direcionamentos<br>Playbooks &<br>Aprovação Humana</div>
+      <div class="pillar-obj">Recomendar ações rápidas e coerentes</div>
+    </div>
+
+    <div class="branch branch-e" id="e1" style="left:2380px; top:2100px;">
+      <div class="branch-code">E1</div>
+      Playbooks por Cenário
+    </div>
+
+    <div class="sub-branch sub-e" id="e1a" style="left:2600px; top:2020px;">Resposta oficial / nota</div>
+    <div class="sub-branch sub-e" id="e1b" style="left:2610px; top:2070px;">Q&A e alinhamento de mensagem</div>
+    <div class="sub-branch sub-e" id="e1c" style="left:2600px; top:2120px;">Estratégia de imprensa</div>
+    <div class="sub-branch sub-e" id="e1d" style="left:2610px; top:2170px;">Plano de contenção</div>
+    <div class="sub-branch sub-e" id="e1e" style="left:2600px; top:2220px;">Mobilização positiva</div>
+
+    <div class="branch branch-e" id="e2" style="left:2380px; top:2260px;">
+      <div class="branch-code">E2</div>
+      Aprovação Humana<br><em>obrigatória</em>
+    </div>
+
+    <div class="meta-node meta-e" id="metaE1" style="left:2380px; top:2360px;">
+      <div class="meta-label">Automação</div>
+      após aprovação → envia pacote final → cria tarefas em CRM
+    </div>
+
+    <!-- ==================== PILAR F ==================== -->
+    <div class="pillar theme-f" id="pilarF" style="left:1530px; top:2100px; width:230px;"
+         data-tip="Transformar dados em valor recorrente. Analista (conteúdo) + Operador (entrega).">
+      <div class="pillar-letter">PILAR F</div>
+      <div class="pillar-title">Relatórios<br>Recorrentes &<br>Otimização</div>
+      <div class="pillar-obj">Transformar dados em valor recorrente</div>
+    </div>
+
+    <div class="branch branch-f" id="f1" style="left:1200px; top:2080px;">
+      <div class="branch-code">F1</div>
+      Relatório Diário / Semanal<br><em>campanha / pré-eleição</em>
+    </div>
+    <div class="branch branch-f" id="f2" style="left:1180px; top:2180px;">
+      <div class="branch-code">F2</div>
+      Tendências & Narrativas<br>Dominantes + Recomendações
+    </div>
+    <div class="branch branch-f" id="f3" style="left:1200px; top:2280px;">
+      <div class="branch-code">F3</div>
+      Loop Semanal<br><em>Perplexity/Manus — atualizar perímetro</em>
+    </div>
+
+    <div class="meta-node meta-f" id="metaF1" style="left:940px; top:2120px;">
+      <div class="meta-label">Direcionamento</div>
+      Analista (conteúdo) + Operador (entrega)
+    </div>
+    <div class="meta-node meta-f" id="metaF2" style="left:940px; top:2230px;">
+      <div class="meta-label">Automação</div>
+      fechamento do período → gera PDF → envia → registra entrega
+    </div>
+
+    <!-- ==================== ARQUITETURA ==================== -->
+    <div class="extra-pillar theme-extra" id="arq" style="left:1100px; top:420px; width:220px;">
+      <div class="ep-title">ARQUITETURA<br>Componentes</div>
+    </div>
+
+    <div class="extra-item item-extra" id="arq1" style="left:820px; top:260px;">1. Ingestão (Elege.AI → n8n)</div>
+    <div class="extra-item item-extra" id="arq2" style="left:810px; top:310px;">2. Enriquecimento (dedup + metadados)</div>
+    <div class="extra-item item-extra" id="arq3" style="left:820px; top:360px;">3. Classificação IA (LLM + regras)</div>
+    <div class="extra-item item-extra" id="arq4" style="left:810px; top:410px;">4. Rules Engine (gatilhos/severidade)</div>
+    <div class="extra-item item-extra" id="arq5" style="left:820px; top:460px;">5. Playbook Engine (seleção resposta)</div>
+    <div class="extra-item item-extra" id="arq6" style="left:810px; top:510px;">6. Draft Engine (nota/post/Q&A)</div>
+    <div class="extra-item item-extra" id="arq7" style="left:820px; top:560px;">7. Approval UI (aprovar/editar)</div>
+    <div class="extra-item item-extra" id="arq8" style="left:810px; top:610px;">8. Notificações (WhatsApp/Slack/Email)</div>
+    <div class="extra-item item-extra" id="arq9" style="left:820px; top:660px;">9. Relatórios (HTML → PDF/Doc)</div>
+    <div class="extra-item item-extra" id="arq10" style="left:810px; top:710px;">10. Auditoria & Logs</div>
+
+    <!-- ==================== TECNOLOGIAS ==================== -->
+    <div class="extra-pillar theme-tech" id="tech" style="left:1000px; top:1050px; width:220px;">
+      <div class="ep-title">TECNOLOGIAS<br>Sugeridas</div>
+    </div>
+
+    <div class="extra-item item-tech" id="tech1" style="left:720px; top:920px;">n8n — orquestração</div>
+    <div class="extra-item item-tech" id="tech2" style="left:710px; top:970px;">Supabase/Postgres — dados e auditoria</div>
+    <div class="extra-item item-tech" id="tech3" style="left:720px; top:1020px;">Elege.AI — monitoramento fechado</div>
+    <div class="extra-item item-tech" id="tech4" style="left:710px; top:1070px;">Perplexity + Manus — inteligência</div>
+    <div class="extra-item item-tech" id="tech5" style="left:720px; top:1120px;">LLM OpenAI — classificação/resumo</div>
+    <div class="extra-item item-tech" id="tech6" style="left:710px; top:1170px;">WhatsApp Business API — alertas</div>
+    <div class="extra-item item-tech" id="tech7" style="left:720px; top:1220px;">Dashboard — Metabase/Retool/Next.js</div>
+
+    <!-- ==================== EQUIPE ==================== -->
+    <div class="extra-pillar theme-team" id="team" style="left:1100px; top:1620px; width:220px;">
+      <div class="ep-title">EQUIPE &<br>PAPÉIS</div>
+    </div>
+
+    <div class="extra-item item-team" id="team1" style="left:800px; top:1540px; max-width:190px;">
+      <strong>Diretor Estratégico</strong><br>owner, curadoria final, aprovação, conduz crises
+    </div>
+    <div class="extra-item item-team" id="team2" style="left:790px; top:1640px; max-width:190px;">
+      <strong>Analista de Inteligência</strong><br>pesquisa, mapa narrativo, evidências, briefing
+    </div>
+    <div class="extra-item item-team" id="team3" style="left:800px; top:1740px; max-width:190px;">
+      <strong>Operador Técnico</strong><br>n8n, Elege.AI, integrações, alertas, relatórios
+    </div>
+
+    <!-- ==================== ROADMAP ==================== -->
+    <div class="extra-pillar theme-road" id="road" style="left:1780px; top:580px; width:220px;">
+      <div class="ep-title">ROADMAP<br>Desenvolvimento</div>
+    </div>
+
+    <div class="extra-item item-road" id="road1" style="left:1580px; top:460px; max-width:190px;">
+      <strong>MVP (2–4 sem)</strong><br>Ingestão + DB + dedup, classificação básica, alertas, relatório semanal
+    </div>
+    <div class="extra-item item-road" id="road2" style="left:1560px; top:580px; max-width:190px;">
+      <strong>V1 (4–8 sem)</strong><br>CrisisPacket + aprovação, Dashboard 3 telas, auditoria, relatório diário
+    </div>
+    <div class="extra-item item-road" id="road3" style="left:1580px; top:700px; max-width:190px;">
+      <strong>V2 (8–16 sem)</strong><br>Embeddings + clusters, detecção virada narrativa, comparativo adversários
+    </div>
+
+  </div>
+</div>
+
+<div class="legend">
+  <h3>Legenda dos Pilares</h3>
+  <div class="legend-item"><div class="legend-dot" style="background:#06b6d4;"></div> Pilar A — Captação & Diagnóstico</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div> Pilar B — Setup Fechado</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Pilar C — Monitoramento & Classificação</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f43f5e;"></div> Pilar D — Detecção de Crise</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;"></div> Pilar E — Playbooks & Aprovação</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#38bdf8;"></div> Pilar F — Relatórios & Otimização</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#94a3b8;"></div> Arquitetura (Componentes)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d946ef;"></div> Tecnologias Sugeridas</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#14b8a6;"></div> Equipe & Papéis</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#6366f1;"></div> Roadmap de Desenvolvimento</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ===================== CONNECTIONS =====================
+const connections = [
+  // Center → Pillars
+  { from: 'center', to: 'pilarA', color: '#06b6d4', width: 3 },
+  { from: 'center', to: 'pilarB', color: '#10b981', width: 3 },
+  { from: 'center', to: 'pilarC', color: '#f59e0b', width: 3 },
+  { from: 'center', to: 'pilarD', color: '#f43f5e', width: 3 },
+  { from: 'center', to: 'pilarE', color: '#8b5cf6', width: 3 },
+  { from: 'center', to: 'pilarF', color: '#38bdf8', width: 3 },
+  { from: 'center', to: 'arq', color: '#94a3b8', width: 2 },
+  { from: 'center', to: 'tech', color: '#d946ef', width: 2 },
+  { from: 'center', to: 'team', color: '#14b8a6', width: 2 },
+  { from: 'center', to: 'road', color: '#6366f1', width: 2 },
+
+  // Pilar A branches
+  { from: 'pilarA', to: 'a1', color: '#06b6d4', width: 1.5 },
+  { from: 'pilarA', to: 'a2', color: '#06b6d4', width: 1.5 },
+  { from: 'pilarA', to: 'a3', color: '#06b6d4', width: 1.5 },
+  { from: 'pilarA', to: 'a4', color: '#06b6d4', width: 1.5 },
+  { from: 'a1', to: 'metaA1', color: '#06b6d4', width: 0.8 },
+  { from: 'a2', to: 'metaA2', color: '#06b6d4', width: 0.8 },
+
+  // Pilar B branches
+  { from: 'pilarB', to: 'b1', color: '#10b981', width: 1.5 },
+  { from: 'pilarB', to: 'b2', color: '#10b981', width: 1.5 },
+  { from: 'pilarB', to: 'b3', color: '#10b981', width: 1.5 },
+  { from: 'b1', to: 'metaB1', color: '#10b981', width: 0.8 },
+  { from: 'b2', to: 'metaB2', color: '#10b981', width: 0.8 },
+
+  // Pilar C branches
+  { from: 'pilarC', to: 'c1', color: '#f59e0b', width: 1.5 },
+  { from: 'pilarC', to: 'c2', color: '#f59e0b', width: 1.5 },
+  { from: 'pilarC', to: 'c3', color: '#f59e0b', width: 1.5 },
+  { from: 'c1', to: 'metaC1', color: '#f59e0b', width: 0.8 },
+  { from: 'c2', to: 'metaC2', color: '#f59e0b', width: 0.8 },
+
+  // Pilar D branches
+  { from: 'pilarD', to: 'd1', color: '#f43f5e', width: 1.5 },
+  { from: 'pilarD', to: 'd2', color: '#f43f5e', width: 1.5 },
+  { from: 'pilarD', to: 'd3', color: '#f43f5e', width: 1.5 },
+  { from: 'd1', to: 'metaD1', color: '#f43f5e', width: 0.8 },
+  { from: 'd2', to: 'metaD2', color: '#f43f5e', width: 0.8 },
+
+  // Pilar E branches
+  { from: 'pilarE', to: 'e1', color: '#8b5cf6', width: 1.5 },
+  { from: 'pilarE', to: 'e2', color: '#8b5cf6', width: 1.5 },
+  { from: 'e1', to: 'e1a', color: '#8b5cf6', width: 0.8 },
+  { from: 'e1', to: 'e1b', color: '#8b5cf6', width: 0.8 },
+  { from: 'e1', to: 'e1c', color: '#8b5cf6', width: 0.8 },
+  { from: 'e1', to: 'e1d', color: '#8b5cf6', width: 0.8 },
+  { from: 'e1', to: 'e1e', color: '#8b5cf6', width: 0.8 },
+  { from: 'e2', to: 'metaE1', color: '#8b5cf6', width: 0.8 },
+
+  // Pilar F branches
+  { from: 'pilarF', to: 'f1', color: '#38bdf8', width: 1.5 },
+  { from: 'pilarF', to: 'f2', color: '#38bdf8', width: 1.5 },
+  { from: 'pilarF', to: 'f3', color: '#38bdf8', width: 1.5 },
+  { from: 'f1', to: 'metaF1', color: '#38bdf8', width: 0.8 },
+  { from: 'f2', to: 'metaF2', color: '#38bdf8', width: 0.8 },
+
+  // Arquitetura
+  { from: 'arq', to: 'arq1', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq2', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq3', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq4', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq5', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq6', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq7', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq8', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq9', color: '#94a3b8', width: 1 },
+  { from: 'arq', to: 'arq10', color: '#94a3b8', width: 1 },
+
+  // Tech
+  { from: 'tech', to: 'tech1', color: '#d946ef', width: 1 },
+  { from: 'tech', to: 'tech2', color: '#d946ef', width: 1 },
+  { from: 'tech', to: 'tech3', color: '#d946ef', width: 1 },
+  { from: 'tech', to: 'tech4', color: '#d946ef', width: 1 },
+  { from: 'tech', to: 'tech5', color: '#d946ef', width: 1 },
+  { from: 'tech', to: 'tech6', color: '#d946ef', width: 1 },
+  { from: 'tech', to: 'tech7', color: '#d946ef', width: 1 },
+
+  // Team
+  { from: 'team', to: 'team1', color: '#14b8a6', width: 1 },
+  { from: 'team', to: 'team2', color: '#14b8a6', width: 1 },
+  { from: 'team', to: 'team3', color: '#14b8a6', width: 1 },
+
+  // Roadmap
+  { from: 'road', to: 'road1', color: '#6366f1', width: 1 },
+  { from: 'road', to: 'road2', color: '#6366f1', width: 1 },
+  { from: 'road', to: 'road3', color: '#6366f1', width: 1 },
+];
+
+function getCenter(el) {
+  const rect = el.getBoundingClientRect();
+  const container = document.getElementById('map-container');
+  const cRect = container.getBoundingClientRect();
+  return {
+    x: el.offsetLeft + el.offsetWidth / 2,
+    y: el.offsetTop + el.offsetHeight / 2
+  };
+}
+
+function drawConnections() {
+  const svg = document.getElementById('svg-lines');
+  svg.innerHTML = '';
+  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+  connections.forEach(conn => {
+    const fromEl = document.getElementById(conn.from);
+    const toEl = document.getElementById(conn.to);
+    if (!fromEl || !toEl) return;
+
+    const from = getCenter(fromEl);
+    const to = getCenter(toEl);
+
+    // Curved path
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const cx1 = from.x + dx * 0.4;
+    const cy1 = from.y;
+    const cx2 = from.x + dx * 0.6;
+    const cy2 = to.y;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${from.x} ${from.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${to.x} ${to.y}`);
+    path.setAttribute('stroke', conn.color);
+    path.setAttribute('stroke-width', conn.width);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('opacity', '0.4');
+    path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+  });
+}
+
+drawConnections();
+
+// ===================== PAN & ZOOM =====================
+const canvas = document.getElementById('canvas');
+const container = document.getElementById('map-container');
+let scale = 0.5;
+let isPanning = false;
+let startX, startY, scrollLeft, scrollTop;
+
+container.style.transform = `scale(${scale})`;
+container.style.transformOrigin = '0 0';
+
+// Center view on load
+setTimeout(() => {
+  const cw = canvas.clientWidth;
+  const ch = canvas.clientHeight;
+  canvas.scrollLeft = (4200 * scale - cw) / 2;
+  canvas.scrollTop = (3200 * scale - ch) / 2;
+}, 100);
+
+canvas.addEventListener('mousedown', (e) => {
+  isPanning = true;
+  startX = e.pageX - canvas.offsetLeft;
+  startY = e.pageY - canvas.offsetTop;
+  scrollLeft = canvas.scrollLeft;
+  scrollTop = canvas.scrollTop;
+});
+
+canvas.addEventListener('mouseleave', () => { isPanning = false; });
+canvas.addEventListener('mouseup', () => { isPanning = false; });
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  e.preventDefault();
+  const x = e.pageX - canvas.offsetLeft;
+  const y = e.pageY - canvas.offsetTop;
+  canvas.scrollLeft = scrollLeft - (x - startX);
+  canvas.scrollTop = scrollTop - (y - startY);
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.05 : 0.05;
+  scale = Math.max(0.2, Math.min(1.5, scale + delta));
+  container.style.transform = `scale(${scale})`;
+}, { passive: false });
+
+function zoomIn() {
+  scale = Math.min(1.5, scale + 0.1);
+  container.style.transform = `scale(${scale})`;
+}
+
+function zoomOut() {
+  scale = Math.max(0.2, scale - 0.1);
+  container.style.transform = `scale(${scale})`;
+}
+
+function resetView() {
+  scale = 0.5;
+  container.style.transform = `scale(${scale})`;
+  const cw = canvas.clientWidth;
+  const ch = canvas.clientHeight;
+  canvas.scrollLeft = (4200 * scale - cw) / 2;
+  canvas.scrollTop = (3200 * scale - ch) / 2;
+}
+
+// ===================== TOOLTIPS =====================
+const tooltip = document.getElementById('tooltip');
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', (e) => {
+    tooltip.textContent = el.getAttribute('data-tip');
+    tooltip.style.display = 'block';
+    tooltip.style.left = e.clientX + 15 + 'px';
+    tooltip.style.top = e.clientY + 15 + 'px';
+  });
+  el.addEventListener('mousemove', (e) => {
+    tooltip.style.left = e.clientX + 15 + 'px';
+    tooltip.style.top = e.clientY + 15 + 'px';
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+  });
+});
+</script>
+
+</body>
+</html>

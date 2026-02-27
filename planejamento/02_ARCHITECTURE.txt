@@ -1,0 +1,74 @@
+ARQUITETURA — Componentes e responsabilidades
+
+1) API Gateway / Auth
+- Autenticação: JWT (ou SSO opcional).
+- Autorização: RBAC (org-level + client-level).
+- Multi-tenant: toda request resolve client_id; acesso filtrado via RLS + middleware.
+- Rate limit: por client e por endpoint sensível.
+
+2) Ingestion API (Webhooks/REST)
+- Recebe payload do Elege.AI e de fontes externas.
+- Valida schema + autenticação (token por cliente).
+- Normaliza para schema interno (mentions).
+- Dedup (external_id + hash) e persistência.
+- Emite evento e enfileira classify_mention.
+
+3) Workers / Jobs (Redis Queue)
+Jobs principais:
+- classify_mention
+- evaluate_rules
+- build_crisis_packet
+- send_notifications
+- generate_reports
+- sync_crm_tasks
+Requisitos:
+- Idempotência por job_key
+- Retry com backoff
+- DLQ (dead letter queue) + alarmes
+
+4) Classification Service (LLM + regras)
+- Input: mention + contexto (setup + source score).
+- Output: tema, sentimento, narrativa, risco_score, confiança, tags, rationale.
+- Prompt versionado (salvar prompt_version em classifications).
+- Guardrails: limites de tokens, timeouts, fallback rules.
+
+5) Rules Engine
+- Calcula métricas em janelas (15m/1h/6h).
+- Aplica ruleset por cliente:
+  - pico vs baseline
+  - fonte crítica
+  - termo sensível
+  - adversário
+- Define severidade e cria alerts.
+- Para severidade vermelha: cria/atualiza crisis_packet em status aguardando_aprovação.
+
+6) Playbook Engine
+- Mapeia severidade + tema/narrativa → playbook.
+- Produz checklist e orientações para 2h/24h/72h.
+- Templates de drafts (nota curta/média, Q&A, roteiro vídeo).
+
+7) CrisisPacket Builder
+- Coleta evidências e organiza em pacote auditável.
+- Gera Brief 1 pág + timeline.
+- Prepara drafts e plano operacional.
+- Exige aprovação humana antes de enviar.
+
+8) Notification Service
+- Canais: WhatsApp, Slack, Email.
+- Quiet hours + rate limit + prioridade por severidade.
+- Log de entregas/notificações.
+
+9) Report Generator
+- HTML → PDF/Doc.
+- Diários, semanais e de crise.
+- Armazena e registra em deliveries.
+
+10) Scenario Engine (V2)
+- Replay histórico (backtest).
+- “What-if” de setup/rules/thresholds/fontes.
+- Métricas comparativas + custo estimado.
+
+Observabilidade e Segurança
+- Logs estruturados (request_id, job_id, client_id).
+- Auditoria por entidade crítica.
+- Backups criptografados e rotacionados.

@@ -1,0 +1,32 @@
+SCENARIOS (V2) — Motor de análise de cenários
+
+Definição de cenário
+- setup_version (ou setup alternativo)
+- ruleset (thresholds/gatilhos)
+- configuração de fontes críticas
+- política de severidade
+- política de notificações (quiet hours/rate limit)
+- (opcional) modelo/prompt version de classificação
+
+Tipos de simulação
+1) Replay histórico (backtest)
+- Rodar últimas N horas/dias de mentions com cenário alternativo
+
+2) What-if de fontes
+- “Se eu promover fonte X para crítica, quantos alertas a mais?”
+
+3) What-if de custo
+- Estimar tokens/processamento e custo LLM + notificações
+
+4) Stress test
+- Simular pico de mentions e concorrência de jobs
+
+Outputs
+- metrics_json com:
+  - mentions processadas
+  - alertas por severidade
+  - crisis_packets gerados
+  - tempo médio até alerta
+  - top gatilhos
+  - custo estimado
+- relatório comparativo entre cenários A/B/C

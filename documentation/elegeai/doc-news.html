@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>News API Service — Documentação</title>
+  <style>
+:root{
+  --bg:#0b1020;
+  --panel:#0f172a;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --accent:#22c55e;
+  --codebg:#0a0f1e;
+  --border:rgba(148,163,184,.2);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,"Apple Color Emoji","Segoe UI Emoji";background:linear-gradient(180deg,var(--bg),#060814);color:var(--text);}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrapper{max-width:980px;margin:0 auto;padding:42px 18px 80px}
+.header{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,.6);color:var(--muted);font-size:12px}
+.badge .dot{width:8px;height:8px;border-radius:999px;background:var(--accent);box-shadow:0 0 18px rgba(34,197,94,.55)}
+.card{background:rgba(15,23,42,.72);border:1px solid var(--border);border-radius:18px;box-shadow:0 16px 60px rgba(0,0,0,.35);overflow:hidden}
+.content{padding:28px}
+h1,h2,h3{line-height:1.2;margin:22px 0 12px}
+h1{font-size:30px;margin-top:0}
+h2{font-size:22px;border-top:1px solid var(--border);padding-top:18px}
+h3{font-size:18px;color:#d1fae5}
+p,li{color:var(--text);opacity:.95;line-height:1.65}
+ul{padding-left:20px}
+pre{background:var(--codebg);border:1px solid var(--border);border-radius:14px;padding:14px 14px;overflow:auto}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{border:1px solid var(--border);padding:10px 10px;vertical-align:top}
+th{background:rgba(2,6,23,.7);color:var(--muted);text-align:left;font-weight:600}
+hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.footer{margin-top:14px;color:var(--muted);font-size:12px}
+@media (max-width:720px){
+  .header{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div>
+        <div class="badge"><span class="dot"></span>Documentação interna (HTML)</div>
+        <h1>News API Service — Documentação</h1>
+        <div style="color:var(--muted);max-width:70ch">
+          Serviço FastAPI para descobrir feeds de notícias, extrair conteúdo e mídia, e gerar screenshots sob demanda.
+        </div>
+      </div>
+      <div class="badge" title="Gerado a partir do markdown fonte">
+        Fonte: news-api.md
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="content">
+        
+<h1>Serviço News API</h1>
+
+<p>Serviço FastAPI para descobrir feeds de notícias, extrair conteúdo completo de artigos (incluindo mídia) e gerar screenshots sob demanda.</p>
+
+<h2>O que este serviço faz</h2>
+<ul>
+<li>Descobre itens recentes de notícias utilizando auto-descoberta RSS/Atom e padrões comuns de feeds.</li>
+<li>Faz fallback para APIs de CMS quando nenhum feed é detectado (WordPress REST, endpoints JSON genéricos).</li>
+<li>Extrai o conteúdo completo do artigo e imagens a partir de uma URL usando navegador headless + Trafilatura.</li>
+<li>Gera screenshots PNG em viewport mobile.</li>
+<li>Disponibiliza endpoint de validação para verificar compatibilidade do site.</li>
+</ul>
+
+<h2>Endpoints da API</h2>
+
+<h3>GET /news</h3>
+<p>Retorna uma lista de itens recentes do site informado.</p>
+
+<p><strong>Parâmetros de query:</strong></p>
+<ul>
+<li><code>url</code> (obrigatório): URL do site alvo.</li>
+</ul>
+
+<pre><code>curl "http://localhost:8001/news?url=https://example.com"</code></pre>
+
+<pre><code>{
+  "site": "https://example.com",
+  "count": 3,
+  "data": [
+    {
+      "id": "item-id",
+      "title": "Título do artigo",
+      "url": "https://example.com/article",
+      "published_at": "2023-08-01T12:34:56"
+    }
+  ]
+}</code></pre>
+
+<hr/>
+
+<h3>GET /content</h3>
+<p>Extrai o conteúdo completo do artigo e a mídia associada.</p>
+
+<p><strong>Parâmetros de query:</strong></p>
+<ul>
+<li><code>url</code> (obrigatório): URL do artigo.</li>
+</ul>
+
+<pre><code>curl "http://localhost:8001/content?url=https://example.com/article"</code></pre>
+
+<pre><code>{
+  "id": "article-id",
+  "title": "Título do artigo",
+  "url": "https://example.com/article",
+  "published_at": "2023-08-01T12:34:56",
+  "content": "Texto completo do artigo...",
+  "media": [
+    {
+      "id": "media-id",
+      "url": "https://example.com/image.jpg",
+      "description": "Imagem principal do artigo",
+      "kind": "image"
+    }
+  ]
+}</code></pre>
+
+<hr/>
+
+<h3>GET /screenshot</h3>
+<p>Retorna um screenshot PNG (viewport 1080x1920).</p>
+
+<ul>
+<li><code>url</code> (obrigatório): URL alvo.</li>
+</ul>
+
+<pre><code>curl -o pagina.png "http://localhost:8001/screenshot?url=https://example.com"</code></pre>
+
+<hr/>
+
+<h3>GET /validate</h3>
+<p>Executa verificações leves para avaliar se o site é suportado.</p>
+
+<ul>
+<li><code>url</code> (obrigatório): URL do site alvo.</li>
+</ul>
+
+<pre><code>curl "http://localhost:8001/validate?url=https://example.com"</code></pre>
+
+<pre><code>{
+  "url": "https://example.com",
+  "supported": true,
+  "features": {
+    "news_list": true,
+    "content_extraction": false
+  },
+  "details": [
+    "Foram encontrados 10 itens via RSS/API.",
+    "Estrutura do site pode não estar totalmente suportada."
+  ]
+}</code></pre>
+
+<hr/>
+
+<h2>Observações</h2>
+<ul>
+<li>Caso a URL não possua esquema, o serviço adiciona automaticamente <code>https://</code>.</li>
+<li>A descoberta RSS inclui caminhos comuns e auto-descoberta no &lt;head&gt; do HTML.</li>
+<li>O serviço utiliza Playwright para renderização antes da extração com Trafilatura.</li>
+<li>Screenshot utiliza user-agent mobile e tempos de espera reduzidos.</li>
+<li>O endpoint <code>/validate</code> usa heurísticas da Trafilatura em HTML bruto.</li>
+</ul>
+
+      </div>
+    </div>
+
+    <div class="footer">
+      Dica: você pode hospedar este arquivo em qualquer servidor estático (S3, Cloudflare Pages, GitHub Pages) ou abrir localmente no navegador.
+    </div>
+  </div>
+</body>
+</html>

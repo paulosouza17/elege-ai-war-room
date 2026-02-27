@@ -1,0 +1,61 @@
+# Pesquisa sobre a API Brandwatch
+
+
+## Endpoints e Funcionalidades da API
+
+### Projetos
+
+- **Finalidade**: Listar os projetos que contêm seu trabalho. Os projetos são onde suas Queries, categorização e configurações são armazenadas.
+- **Endpoint**: `GET https://api.brandwatch.com/projects/summary`
+- **Input**: Nenhum parâmetro obrigatório.
+- **Output**: Retorna uma lista de projetos aos quais o usuário tem acesso, incluindo `id`, `name`, `description`, `billableClientId`, `billableClientName`, `timezone` e `billableClientIsPitch`.
+
+- **Endpoint**: `GET https://api.brandwatch.com/projects`
+- **Input**: Nenhum parâmetro obrigatório.
+- **Output**: Retorna informações detalhadas sobre os projetos, incluindo links para as Queries dentro deles e seu idioma padrão.
+
+- **Endpoint**: `GET https://api.brandwatch.com/projects/{projectId}`
+- **Input**: `projectId` (obrigatório) - O ID do projeto.
+- **Output**: Retorna informações sobre um projeto específico.
+
+### Queries
+
+- **Finalidade**: Recuperar todas as Queries em um determinado Projeto ou filtrar por tipo de Query.
+- **Endpoint**: `GET https://api.brandwatch.com/projects/{projectId}/queries/summary`
+- **Input**: `projectId` (obrigatório) - O ID do projeto.
+- **Output**: Retorna uma lista de Queries no projeto, incluindo `id`, `name`, `type`, `creationDate`, `lastModificationDate`, `lastModifiedUsername`, `lockedQuery`, `lockedByUsername`, `languages` e `contentSources`.
+
+- **Endpoint**: `GET https://api.brandwatch.com/projects/{projectId}/queries`
+- **Input**: `projectId` (obrigatório) - O ID do projeto.
+- **Output**: Retorna informações detalhadas sobre as Queries, incluindo o conteúdo da query.
+
+- **Endpoint**: `GET https://api.brandwatch.com/projects/{projectId}/queries?type={queryType}`
+- **Input**: `projectId` (obrigatório) - O ID do projeto. `queryType` (opcional) - O tipo de query a ser filtrada (ex: `instagram`).
+- **Output**: Retorna uma lista de Queries do tipo especificado.
+
+### Recuperação de Dados
+
+- **Finalidade**: Agregar dados sobre um conjunto de menções e retorná-los via API. Isso inclui tendências de tópicos, análise de sentimento diária e volume total de conversas.
+- **Endpoints**: A API oferece vários endpoints para recuperação de dados, como `Total Mentions`, `Topics`, `Basic charts`, `Top Sites`, `Top Authors`, etc.
+- **Input**: Os endpoints de recuperação de dados podem ser filtrados para acessar partes específicas dos dados.
+- **Output**: Retorna dados agregados que podem ser usados para alimentar dashboards, semelhantes aos da interface do usuário do Consumer Research.
+
+## Planos e Limitações da API
+
+A Brandwatch oferece planos personalizáveis e não divulga publicamente os preços. É necessário entrar em contato com a equipe de vendas para obter uma demonstração e uma cotação. No entanto, a pesquisa indica que os planos podem começar em torno de US$ 1.750 por mês. A Brandwatch oferece diferentes APIs, incluindo a Analysis API, Data Upload API, Consumer Research API, Measure API, Publish API e Engage API. Cada uma tem suas próprias funcionalidades e limites, que são discutidos durante o processo de vendas. Existem limites de taxa de API, como 30 chamadas de API a cada 10 minutos para alguns planos.
+
+## Valor Agregado para Monitoramento 360
+
+A Brandwatch API agrega um valor imenso a um sistema de monitoramento 360, que visa acompanhar diversos canais de mídia, como TV, rádio, redes sociais e portais de notícias. A capacidade da API de se integrar a um sistema de IA para busca ampla potencializa a análise e a extração de insights. A seguir, detalhamos como a ferramenta contribui para esse ecossistema:
+
+- **Monitoramento Abrangente de Redes Sociais**: A API da Brandwatch permite o monitoramento em tempo real de uma vasta gama de redes sociais, incluindo Twitter, Facebook, Instagram e Reddit. Isso possibilita que o sistema de monitoramento 360 capture menções à marca, hashtags relevantes e conversas de consumidores, fornecendo uma visão completa da presença online da marca.
+
+- **Análise de Sentimento e Tópicos**: Com a funcionalidade de análise de sentimento, a API pode classificar as menções como positivas, negativas ou neutras. A análise de tópicos, por sua vez, identifica os principais temas de discussão associados à marca. Essas informações são cruciais para entender a percepção do público e identificar tendências emergentes.
+
+- **Integração com Outras Fontes de Dados**: A Data Upload API permite a importação de dados não estruturados de outras fontes, como transcrições de TV e rádio ou artigos de portais de notícias. Ao analisar esses dados em conjunto com os dados de redes sociais, o sistema de monitoramento 360 obtém uma visão verdadeiramente holística da presença da marca em todos os canais de mídia.
+
+- **Identificação de Influenciadores e Autores-Chave**: A API pode identificar os principais autores e influenciadores que mencionam a marca, permitindo que as equipes de marketing e comunicação se envolvam com eles de forma estratégica. Isso é fundamental para campanhas de marketing de influência e para a gestão da reputação da marca.
+
+- **Alertas e Relatórios Automatizados**: A capacidade de criar alertas personalizados e relatórios automatizados com base em gatilhos específicos (por exemplo, um aumento repentino no sentimento negativo) permite que as equipes respondam rapidamente a crises e oportunidades. A integração com sistemas de IA pode aprimorar ainda mais esses alertas, prevendo possíveis crises antes que elas se intensifiquem.
+
+- **Flexibilidade e Personalização**: A natureza flexível da API da Brandwatch permite que as empresas personalizem suas soluções de monitoramento para atender às suas necessidades específicas. É possível criar dashboards personalizados, integrar os dados com outras ferramentas de business intelligence e desenvolver análises sob medida para extrair os insights mais relevantes para o negócio.

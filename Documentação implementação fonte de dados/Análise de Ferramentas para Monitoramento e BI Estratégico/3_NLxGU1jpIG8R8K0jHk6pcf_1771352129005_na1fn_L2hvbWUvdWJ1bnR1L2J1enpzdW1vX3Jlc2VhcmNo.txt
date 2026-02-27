@@ -1,0 +1,132 @@
+# Pesquisa sobre a API BuzzSumo
+
+
+## Tipos de API
+
+A BuzzSumo oferece duas APIs principais:
+
+### Search API
+- **URL Base:** api.buzzsumo.com
+- **Funcionalidades:**
+    - Pesquisar artigos populares por tópico ou domínio (endpoint de artigos).
+    - Consultar contagens de compartilhamento ou backlinks para uma URL específica (endpoint de artigos).
+    - Encontrar influenciadores (endpoint de influenciadores - somente Twitter).
+    - Encontrar conteúdo em alta nas últimas 24 horas (endpoint de tendências).
+    - Ver quem compartilhou um artigo específico (endpoint de compartilhadores).
+
+### Account API
+- **URL Base:** account-api.buzzsumo.com
+- **Funcionalidades:**
+    - Criar ou excluir alertas em sua conta.
+    - Buscar menções para um alerta (por exemplo, uma lista de menções recentes à sua marca).
+    - Buscar todos os artigos salvos em um projeto para exibição em um painel.
+
+Ambas as APIs são acessíveis com a mesma chave de API.
+
+### Endpoint: Articles
+- **Método:** GET
+- **URL:** https://api.buzzsumo.com/search/articles.json
+- **Descrição:** Pesquisa artigos publicados na web por tópico ou domínio. Passar uma única URL para recuperar métricas de compartilhamento e engajamento.
+- **Parâmetros de Entrada:**
+    - `q` (string, obrigatório): Palavra-chave, tópico, URL ou domínio.
+    - `num_days` (int32): Filtra por data de publicação a partir de hoje (máx. 365).
+    - `result_type` (string): Ordena os resultados por 'facebook', 'twitter', 'pinterest', 'reddit', 'num_linking_domains', 'evergreen_score', 'total'.
+    - `page` (int32): Página de resultados (começando em 0).
+    - `begin_date` (string): Data de início da busca (timestamp Unix).
+    - `end_date` (string): Data de fim da busca (timestamp Unix).
+    - `num_results` (int32): Número de resultados a retornar (padrão 20, máx. 100).
+    - `language` (string): Filtra por idioma (código de duas letras).
+    - `tld` (string): Filtra por domínio de nível superior (ex: 'fr', 'uk').
+    - `domains` (string): Recupera conteúdo apenas dos domínios fornecidos (lista separada por vírgulas).
+    - `blocked_domains` (string): Remove domínios indesejados dos resultados (lista separada por vírgulas).
+    - `article_type` (string): Tipo de artigo a ser pesquisado (lista separada por vírgulas: 'general_article', 'video', 'list', 'how_to_article', 'what_post', 'why_post', 'infographic').
+    - `b2b_publishers` (boolean): Apenas recupera resultados de publicadores B2B.
+    - `exact_url` (boolean): Retorna apenas a URL exata, se encontrada.
+    - `min_words` (boolean): Filtra resultados por contagem de palavras.
+- **Tipos de Saída:**
+    - Retorna um JSON com uma lista de artigos e suas métricas de engajamento.
+
+### Endpoint: Article Sharers
+- **Método:** GET
+- **URL:** https://api.buzzsumo.com/search/shares.json
+- **Descrição:** Recupera uma amostra das pessoas que compartilharam um artigo específico.
+- **Parâmetros de Entrada:**
+    - `article_id` (string): O ID do artigo para o qual você deseja recuperar os compartilhadores.
+    - `result_type` (string): Usado para classificar os resultados. Padrão: `relevancy`. Valores possíveis: `relevancy`, `num_followers`, `page_authority`, `pagerank`, `retweet_ratio`, `reply_ratio`, `avg_retweets`.
+    - `page` (int32): A página de resultados que você deseja visualizar. Começando em `0`.
+    - `person_types` (string): String separada por vírgulas dos tipos de pessoa que você deseja ver. Valores possíveis: `blogger`, `influencer`, `company`, `journalist`, `regular people`.
+    - `ignore_broadcasters` (boolean): Definido como `true` para remover da lista de resultados os influenciadores que apenas transmitem links ou tweets e raramente respondem a outras pessoas.
+- **Tipos de Saída:**
+    - Retorna um JSON com uma lista de influenciadores que compartilharam o artigo, juntamente com suas métricas.
+
+### Endpoint: Trends
+- **Método:** GET
+- **URL:** https://api.buzzsumo.com/search/trends.json
+- **Descrição:** Descubra artigos em alta nas últimas 24 horas.
+- **Parâmetros de Entrada:**
+    - `topic` (string): Um ou vários tópicos, separados por vírgula.
+    - `search_type` (string): `trending_now` para artigos classificados por pontuação de tendência ou `most_shared` para artigos classificados por total de compartilhamentos/engajamento.
+    - `hours` (int32): Limita a pesquisa às últimas 1-24 horas.
+    - `domains` (string): Um ou mais domínios para ver o conteúdo apenas desses sites.
+    - `blocked_domains` (string): Remove domínios indesejados dos resultados.
+    - `countries` (string): Um ou mais países para ver o conteúdo apenas desses países.
+    - `states` (string): Um ou mais estados dos EUA para ver o conteúdo apenas desses estados.
+    - `tld` (string): Filtra os resultados por domínio de nível superior.
+    - `count` (int32): O número de resultados a serem retornados.
+- **Tipos de Saída:**
+    - Retorna um JSON com uma lista de artigos em alta e suas métricas de engajamento, como `total_shares`, `total_facebook_shares`, `published_date` e `thumbnail`.
+
+### Endpoint: Influencers
+- **Método:** GET
+- **URL:** https://api.buzzsumo.com/search/influencers.json
+- **Descrição:** Encontre influenciadores para qualquer tópico.
+- **Parâmetros de Entrada:**
+    - `q` (string, obrigatório): Uma consulta de pesquisa codificada em URL e UTF-8 com no máximo 1.000 caracteres. Deve ser um tópico como marketing ou mídia social.
+    - `result_type` (string): Usado para classificar os resultados. O padrão é `relevancy`. Valores possíveis: `relevancy`, `num_followers`, `page_authority`, `pagerank`, `retweet_ratio`, `reply_ratio`, `avg_retweets`.
+    - `page` (string): A página de resultados que você deseja visualizar. Começando em `0`.
+    - `person_types` (string): String separada por vírgulas dos tipos de pessoa que você deseja ver. Por padrão, mostraremos todos os tipos de influenciadores. Valores possíveis para escolher: `blogger`, `influencer`, `company`, `journalist`, `regular people`.
+    - `ignore_broadcasters` (boolean): Os locutores são influenciadores que simplesmente transmitem links ou tweets e quase não respondem a outras pessoas. Defina como `true` para removê-los dos resultados.
+    - `location` (string): Pesquise a localização da biografia do Twitter dos influenciadores usando este parâmetro. A maioria dos usuários coloca uma cidade, por exemplo, Londres, então isso tende a funcionar melhor do que um país. Você pode passar vários locais separados com o operador OR, por exemplo, Londres OU Nova York OU Paris etc.
+    - `must_have_instagram_profile` (boolean): Retorna apenas perfis com nome de usuário do Instagram.
+    - `verified_only` (boolean): Retorna apenas perfis verificados no Twitter (eles têm uma marca de seleção azul).
+- **Tipos de Saída:**
+    - Retorna um JSON com uma lista de influenciadores e suas métricas, como `pagerank`, `reply_ratio`, `retweet_ratio`, `url_share_ratio`, `page_authority`, `domain_authority` e `avg_retweets`.
+
+### Endpoint: List Alerts
+- **Método:** GET
+- **URL:** https://account-api.buzzsumo.com/alerts
+- **Descrição:** Lista todos os alertas que pertencem a esta conta.
+- **Parâmetros de Entrada:** Nenhum.
+- **Tipos de Saída:** Retorna um JSON com uma lista de alertas.
+
+### Endpoint: List Projects
+- **Método:** GET
+- **URL:** https://account-api.buzzsumo.com/projects
+- **Descrição:** Lista todos os projetos em sua conta.
+- **Parâmetros de Entrada:** Nenhum.
+- **Tipos de Saída:** Retorna um JSON com uma lista de projetos.
+
+## Planos e Preços
+
+A BuzzSumo oferece os seguintes planos:
+
+- **Content Creation:** $199/mês para 1 usuário e 2 alertas.
+- **PR & Comms:** $299/mês para 5 usuários e 5 alertas.
+- **Suite:** $499/mês para 10 usuários e 10 alertas.
+- **Enterprise:** $999/mês para 30 usuários e 50 alertas.
+
+É oferecido um desconto de 20% para pagamentos anuais. Também está disponível uma avaliação gratuita. A página de preços não especifica os limites da API para cada plano. 
+
+## Valor Agregado para Monitoramento 360
+
+A API BuzzSumo pode agregar um valor significativo a um sistema de monitoramento 360 que abrange TV, rádio, redes sociais, portais de notícias e IA para busca ampla, das seguintes maneiras:
+
+- **Monitoramento de Conteúdo e Tendências:** A API de Pesquisa permite o monitoramento em tempo real de conteúdo popular e tendências em toda a web e nas redes sociais. Isso pode ser usado para identificar rapidamente as notícias e os tópicos que estão ganhando força, permitindo que o sistema de monitoramento 360 reaja e relate os desenvolvimentos importantes à medida que eles acontecem.
+
+- **Análise da Concorrência:** Ao monitorar o conteúdo de melhor desempenho dos concorrentes, uma empresa pode obter insights sobre suas estratégias e o que está repercutindo em seu público. Isso pode informar a própria estratégia de conteúdo e mensagens da empresa.
+
+- **Identificação de Influenciadores:** A API pode identificar os principais influenciadores em qualquer nicho, permitindo que as empresas monitorem o que eles estão dizendo e com quem estão se envolvendo. Isso é crucial para o gerenciamento da reputação da marca e para a identificação de oportunidades de divulgação.
+
+- **Gerenciamento de Crises:** Ao configurar alertas para menções à marca, palavras-chave e outros termos relevantes, as empresas podem ser notificadas imediatamente sobre qualquer imprensa negativa ou crise que esteja se desenrolando. Isso permite uma resposta rápida e a mitigação de possíveis danos.
+
+- **Enriquecimento de Dados:** Os dados da BuzzSumo podem ser integrados a outras fontes de dados (TV, rádio, etc.) para fornecer uma visão mais completa do cenário da mídia. Por exemplo, um aumento nas menções nas redes sociais pode ser correlacionado com uma reportagem de TV ou segmento de rádio.

@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>People API</title>
+  <style>
+:root{
+  --bg:#0b1020;
+  --panel:#0f172a;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --accent:#22c55e;
+  --codebg:#0a0f1e;
+  --border:rgba(148,163,184,.2);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,"Apple Color Emoji","Segoe UI Emoji";background:linear-gradient(180deg,var(--bg),#060814);color:var(--text);}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrapper{max-width:980px;margin:0 auto;padding:42px 18px 80px}
+.header{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,.6);color:var(--muted);font-size:12px}
+.badge .dot{width:8px;height:8px;border-radius:999px;background:var(--accent);box-shadow:0 0 18px rgba(34,197,94,.55)}
+.card{background:rgba(15,23,42,.72);border:1px solid var(--border);border-radius:18px;box-shadow:0 16px 60px rgba(0,0,0,.35);overflow:hidden}
+.content{padding:28px}
+h1,h2,h3{line-height:1.2;margin:22px 0 12px}
+h1{font-size:30px;margin-top:0}
+h2{font-size:22px;border-top:1px solid var(--border);padding-top:18px}
+h3{font-size:18px;color:#d1fae5}
+p,li{color:var(--text);opacity:.95;line-height:1.65}
+ul{padding-left:20px}
+pre{background:var(--codebg);border:1px solid var(--border);border-radius:14px;padding:14px 14px;overflow:auto}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{border:1px solid var(--border);padding:10px 10px;vertical-align:top}
+th{background:rgba(2,6,23,.7);color:var(--muted);text-align:left;font-weight:600}
+hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.footer{margin-top:14px;color:var(--muted);font-size:12px}
+@media (max-width:720px){
+  .header{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div>
+        <div class="badge"><span class="dot"></span>Documentação interna (HTML)</div>
+        <h1>People API</h1>
+        <div style="color:var(--muted);max-width:70ch">
+          Documentação gerada automaticamente a partir de um arquivo OpenAPI (YAML).
+        </div>
+      </div>
+      <div class="badge" title="Gerado a partir do YAML fonte">
+        Fonte: openapi_people_service.yaml
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="content">
+        <h1>People API</h1>
+<p style='color:var(--muted)'>Versão <code>1.0.0</code></p>
+<p>Person management and cross-service reference finder.
+
+Orchestrates faces-api, text-search-api, ocr-api, whisper-api, media-api, ytdlp-api and news-api to register people and find references across documents, images, audio and video.</p>
+<h2>Servidores</h2>
+<table><thead><tr><th>URL</th><th>Descrição</th></tr></thead><tbody><tr><td><code>http://10.144.103.1:8011/api/v1</code></td><td>Local</td></tr></tbody></table>
+<h2>Endpoints</h2>
+<h3><code>/health</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Health Check</strong></p>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>status</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>database</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>services</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/stats</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Stats</strong></p>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total_people</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_faces</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_reference_jobs</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_parties</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_titles</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_countries</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_states</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_cities</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_administrations</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>jobs_by_status</code></td><td><code>object</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/people</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List People</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>search</code></td><td>query</td><td></td><td><code></code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>skip</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>people</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create Person</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>file</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td><code>array</code></td><td></td></tr><tr><td><code>face_group_id</code></td><td></td><td></td></tr><tr><td><code>faces</code></td><td><code>array</code></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>party</code></td><td></td><td></td></tr><tr><td><code>title</code></td><td></td><td></td></tr><tr><td><code>administration</code></td><td></td><td></td></tr><tr><td><code>city</code></td><td></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr><tr><td><code>updated_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/people/{person_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show Person</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td><code>array</code></td><td></td></tr><tr><td><code>face_group_id</code></td><td></td><td></td></tr><tr><td><code>faces</code></td><td><code>array</code></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>party</code></td><td></td><td></td></tr><tr><td><code>title</code></td><td></td><td></td></tr><tr><td><code>administration</code></td><td></td><td></td></tr><tr><td><code>city</code></td><td></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr><tr><td><code>updated_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update Person</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>file</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td><code>array</code></td><td></td></tr><tr><td><code>face_group_id</code></td><td></td><td></td></tr><tr><td><code>faces</code></td><td><code>array</code></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>party</code></td><td></td><td></td></tr><tr><td><code>title</code></td><td></td><td></td></tr><tr><td><code>administration</code></td><td></td><td></td></tr><tr><td><code>city</code></td><td></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr><tr><td><code>updated_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete Person</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>status</code></td><td><code>string</code></td><td></td></tr><tr><td><code>person_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/people/{person_id}/faces</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Add Faces</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>file</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(binary)</span></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td><code>array</code></td><td></td></tr><tr><td><code>face_group_id</code></td><td></td><td></td></tr><tr><td><code>faces</code></td><td><code>array</code></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>party</code></td><td></td><td></td></tr><tr><td><code>title</code></td><td></td><td></td></tr><tr><td><code>administration</code></td><td></td><td></td></tr><tr><td><code>city</code></td><td></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr><tr><td><code>updated_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/people/{person_id}/faces/{face_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Remove Face</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>face_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/people/{person_id}/thumbnail</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Get Thumbnail</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/references/find/sync</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Find References Sync</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>file</code></td><td></td><td></td></tr><tr><td><code>url</code></td><td></td><td></td></tr><tr><td><code>min_accuracy</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>job_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>status</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>file_type</code></td><td></td><td></td></tr><tr><td><code>original_filename</code></td><td></td><td></td></tr><tr><td><code>source_url</code></td><td></td><td></td></tr><tr><td><code>processing_time_ms</code></td><td></td><td></td></tr><tr><td><code>people_found</code></td><td><code>array</code></td><td></td></tr><tr><td><code>summary</code></td><td></td><td></td></tr><tr><td><code>error_message</code></td><td></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/references/find</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Find References Async</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>file</code></td><td></td><td></td></tr><tr><td><code>url</code></td><td></td><td></td></tr><tr><td><code>min_accuracy</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>202</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>job_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>status</code></td><td><code>string</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/references/{job_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Get Reference Result</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>job_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>job_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>status</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>file_type</code></td><td></td><td></td></tr><tr><td><code>original_filename</code></td><td></td><td></td></tr><tr><td><code>source_url</code></td><td></td><td></td></tr><tr><td><code>processing_time_ms</code></td><td></td><td></td></tr><tr><td><code>people_found</code></td><td><code>array</code></td><td></td></tr><tr><td><code>summary</code></td><td></td><td></td></tr><tr><td><code>error_message</code></td><td></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/countries</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List Countries</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create Country</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/countries/{item_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show Country</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update Country</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>code</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete Country</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/states</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List States</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>country_id</code></td><td>query</td><td></td><td><code></code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create State</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>country_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>country_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/states/{item_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show State</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>country_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update State</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>code</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>country_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete State</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/cities</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List Cities</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>state_id</code></td><td>query</td><td></td><td><code></code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create City</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>state_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>state_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/cities/{item_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show City</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>state_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update City</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>state_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete City</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/parties</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List Parties</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create Party</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/parties/{item_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show Party</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update Party</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code></td><td></td><td></td></tr><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete Party</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/titles</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List Titles</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create Title</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/titles/{item_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show Title</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update Title</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete Title</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/administrations</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>List Administrations</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>skip</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code></td><td>query</td><td></td><td><code>integer</code></td><td></td></tr><tr><td><code>branch</code></td><td>query</td><td></td><td><code></code></td><td></td></tr><tr><td><code>administrable_type</code></td><td>query</td><td></td><td><code></code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>POST</span></p>
+<p><strong>Create Administration</strong></p>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>branch</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>administrable_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>administrable_type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>201</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>branch</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>administrable_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>administrable_type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h3><code>/administrations/{item_id}</code></h3>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>GET</span></p>
+<p><strong>Show Administration</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>branch</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>administrable_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>administrable_type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>PUT</span></p>
+<p><strong>Update Administration</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Body</strong></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code></td><td></td><td></td></tr><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>branch</code></td><td></td><td></td></tr><tr><td><code>administrable_id</code></td><td></td><td></td></tr><tr><td><code>administrable_type</code></td><td></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>branch</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>administrable_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>administrable_type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<p><strong>Método:</strong> <span class='badge'><span class='dot'></span>DELETE</span></p>
+<p><strong>Delete Administration</strong></p>
+<p><strong>Parâmetros</strong></p>
+<table><thead><tr><th>Nome</th><th>Em</th><th></th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>item_id</code></td><td>path</td><td><span class="badge" style="padding:2px 8px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<p><strong>Respostas</strong></p>
+<h4>Status <code>200</code></h4>
+<p>Successful Response</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p style='color:var(--muted)'>—</p>
+<h4>Status <code>422</code></h4>
+<p>Validation Error</p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<hr/>
+<h2>Modelos (Schemas)</h2>
+<h3><code>AdministrationListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>AdministrationOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>branch</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>administrable_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>administrable_type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>Body_add_faces_people__person_id__faces_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>file</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(binary)</span></td><td></td></tr></tbody></table>
+<h3><code>Body_create_administration_administrations_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>branch</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>administrable_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>administrable_type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<h3><code>Body_create_city_cities_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>state_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr></tbody></table>
+<h3><code>Body_create_country_countries_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<h3><code>Body_create_party_parties_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_create_person_people_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>file</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_create_state_states_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>country_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr></tbody></table>
+<h3><code>Body_create_title_titles_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<h3><code>Body_find_references_async_references_find_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>file</code></td><td></td><td></td></tr><tr><td><code>url</code></td><td></td><td></td></tr><tr><td><code>min_accuracy</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_find_references_sync_references_find_sync_post</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>file</code></td><td></td><td></td></tr><tr><td><code>url</code></td><td></td><td></td></tr><tr><td><code>min_accuracy</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_administration_administrations__item_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code></td><td></td><td></td></tr><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>branch</code></td><td></td><td></td></tr><tr><td><code>administrable_id</code></td><td></td><td></td></tr><tr><td><code>administrable_type</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_city_cities__item_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_country_countries__item_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>code</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_party_parties__item_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>code</code></td><td></td><td></td></tr><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_person_people__person_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>file</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_state_states__item_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr><tr><td><code>code</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>Body_update_title_titles__item_id__put</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>CityListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>CityOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>state_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>CountryListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>CountryOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>HTTPValidationError</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>detail</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>HealthOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>status</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>database</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>services</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>PartyListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>PartyOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alignment</code></td><td></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>PersonDeleteOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>status</code></td><td><code>string</code></td><td></td></tr><tr><td><code>person_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr></tbody></table>
+<h3><code>PersonFaceOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>face_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>source_filename</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>PersonFound</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>person_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>references</code></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>PersonListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>skip</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>limit</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>people</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>PersonOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>alias</code></td><td></td><td></td></tr><tr><td><code>genre</code></td><td></td><td></td></tr><tr><td><code>name_variants</code></td><td><code>array</code></td><td></td></tr><tr><td><code>face_group_id</code></td><td></td><td></td></tr><tr><td><code>faces</code></td><td><code>array</code></td><td></td></tr><tr><td><code>party_id</code></td><td></td><td></td></tr><tr><td><code>title_id</code></td><td></td><td></td></tr><tr><td><code>administration_id</code></td><td></td><td></td></tr><tr><td><code>city_id</code></td><td></td><td></td></tr><tr><td><code>state_id</code></td><td></td><td></td></tr><tr><td><code>country_id</code></td><td></td><td></td></tr><tr><td><code>party</code></td><td></td><td></td></tr><tr><td><code>title</code></td><td></td><td></td></tr><tr><td><code>administration</code></td><td></td><td></td></tr><tr><td><code>city</code></td><td></td><td></td></tr><tr><td><code>state</code></td><td></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr><tr><td><code>updated_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>PersonReference</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td>face_match or text_match</td></tr><tr><td><code>source</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td>e.g. filename, transcription, frame name</td></tr><tr><td><code>position</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>$ref</code> <span style='color:var(--muted)'>#/components/schemas/ReferencePosition</span></td><td></td></tr><tr><td><code>accuracy</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>number</code></td><td></td></tr><tr><td><code>match_type</code></td><td></td><td></td></tr><tr><td><code>context</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>ReferenceJobCreated</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>job_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>status</code></td><td><code>string</code></td><td></td></tr></tbody></table>
+<h3><code>ReferencePosition</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>start</code></td><td></td><td></td></tr><tr><td><code>end</code></td><td></td><td></td></tr><tr><td><code>page</code></td><td></td><td></td></tr><tr><td><code>timestamp_seconds</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>ReferenceResult</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>job_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>status</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>file_type</code></td><td></td><td></td></tr><tr><td><code>original_filename</code></td><td></td><td></td></tr><tr><td><code>source_url</code></td><td></td><td></td></tr><tr><td><code>processing_time_ms</code></td><td></td><td></td></tr><tr><td><code>people_found</code></td><td><code>array</code></td><td></td></tr><tr><td><code>summary</code></td><td></td><td></td></tr><tr><td><code>error_message</code></td><td></td><td></td></tr></tbody></table>
+<h3><code>ReferenceSummary</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total_people_found</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_text_matches</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_face_matches</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr></tbody></table>
+<h3><code>ServiceHealth</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>url</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>status</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+<h3><code>StateListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>StateOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>code</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>country_id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>country</code></td><td></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>StatsOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total_people</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_faces</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_reference_jobs</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_parties</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_titles</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_countries</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_states</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_cities</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>total_administrations</code></td><td><code>integer</code></td><td></td></tr><tr><td><code>jobs_by_status</code></td><td><code>object</code></td><td></td></tr></tbody></table>
+<h3><code>TitleListOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>total</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>integer</code></td><td></td></tr><tr><td><code>items</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr></tbody></table>
+<h3><code>TitleOut</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>id</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(uuid)</span></td><td></td></tr><tr><td><code>name</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>created_at</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code> <span style='color:var(--muted)'>(date-time)</span></td><td></td></tr></tbody></table>
+<h3><code>ValidationError</code></h3>
+<p><strong>Tipo:</strong> <code>object</code></p>
+<table><thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody><tr><td><code>loc</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>array</code></td><td></td></tr><tr><td><code>msg</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr><tr><td><code>type</code> <span class="badge" style="padding:2px 8px; margin-left:6px">obrigatório</span></td><td><code>string</code></td><td></td></tr></tbody></table>
+      </div>
+    </div>
+
+    <div class="footer">
+      Dica: você pode hospedar este arquivo em qualquer servidor estático (S3, Cloudflare Pages, GitHub Pages) ou abrir localmente no navegador.
+    </div>
+  </div>
+</body>
+</html>

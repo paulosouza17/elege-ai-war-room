@@ -1,0 +1,56 @@
+Pesquisa sobre a API da SEMRush
+
+
+
+# Pesquisa Detalhada sobre a API da SEMRush
+
+## 1. Finalidades da API
+
+A API da SEMRush é um conjunto de APIs que fornecem acesso a uma vasta gama de dados de marketing digital. As principais APIs são:
+
+*   **Analytics API**: Focada em análise de palavras-chave, domínios, concorrentes e o impacto de recursos de IA nos resultados de busca. Permite comparar domínios, analisar lacunas de palavras-chave e entender o desempenho de conteúdo.
+*   **Projects API**: Projetada para monitorar e otimizar a visibilidade em recursos de SERP (Search Engine Results Page) de IA, como o AI Overview do Google. Ajuda a rastrear a presença de uma marca em respostas geradas por IA.
+*   **Listing Management API**: Permite a gestão e atualização de informações de negócios (como nome, endereço, telefone) em múltiplos diretórios online, garantindo a consistência dos dados.
+*   **Trends API**: Oferece a capacidade de analisar o desempenho online de até 5 concorrentes, fornecendo dados sobre tráfego, comportamento do usuário, fontes de tráfego, geografia e demografia da audiência.
+
+## 2. Tipos de Input
+
+Os parâmetros de entrada (inputs) variam conforme a API e o endpoint específico. Alguns dos inputs mais comuns incluem:
+
+*   `domain`: O domínio que se deseja analisar.
+*   `competitors`: Uma lista de domínios concorrentes para comparação.
+*   `keywords`: Palavras-chave específicas para pesquisa e análise.
+*   `database`: O banco de dados geográfico a ser utilizado (ex: 'us' para Estados Unidos, 'br' para Brasil).
+*   `display_date`: Para filtrar os resultados por um período de tempo específico.
+*   `export_columns`: Para selecionar as colunas de dados que devem ser retornadas na resposta.
+*   `serp_feature_filter`: Para filtrar resultados com base em características específicas da SERP.
+*   `location_id`: O identificador único de uma localização de negócio na Listing Management API.
+
+## 3. Tipos de Output/Resposta
+
+As respostas da API são tipicamente em formato JSON e contêm as métricas e os dados solicitados. Os outputs podem incluir:
+
+*   **Métricas de Tráfego**: Visitas, usuários únicos, duração média da visita, taxa de rejeição, etc.
+*   **Rankings de Palavras-chave**: Posições orgânicas e pagas para palavras-chave específicas.
+*   **Dados de Backlinks**: Informações sobre os backlinks de um domínio.
+*   **Análise de Concorrentes**: Comparação de métricas entre domínios concorrentes.
+*   **Dados Demográficos da Audiência**: Idade, gênero e interesses dos visitantes de um site.
+*   **Informações de Negócios**: Detalhes como nome, endereço, telefone e horário de funcionamento.
+
+## 4. Valor Agregado para Monitoramento 360
+
+A API da SEMRush oferece um valor significativo para um sistema de monitoramento 360, permitindo a integração de dados de marketing digital com outras fontes de informação. O valor agregado se manifesta em várias áreas:
+
+*   **Monitoramento de Mídia Digital**: Acompanhamento em tempo real da visibilidade orgânica e paga de uma marca e de seus concorrentes, permitindo uma reação rápida a mudanças no cenário digital.
+*   **Análise Competitiva Abrangente**: Identificação das estratégias de marketing dos concorrentes, incluindo suas palavras-chave mais valiosas, campanhas de publicidade, fontes de tráfego e desempenho de conteúdo.
+*   **Inteligência de Conteúdo Estratégico**: Descoberta de novas oportunidades de conteúdo ao identificar lacunas de palavras-chave e analisar o que funciona para os concorrentes.
+*   **Monitoramento de Reputação Online**: Acompanhamento da presença da marca em recursos de IA da SERP e em listagens de negócios, o que é crucial para a gestão da reputação online.
+*   **Análise de Tendências de Mercado**: Utilização da Trends API para monitorar o tráfego e o comportamento do consumidor em um setor específico, fornecendo insights para a tomada de decisões estratégicas.
+
+## 5. Planos e Limitações de API
+
+*   **Acesso à API**: O acesso à API da SEMRush está disponível nos planos **Advanced** e superiores.
+*   **Preços**: O plano Advanced tem um custo de $455.67 por mês quando cobrado anualmente.
+*   **Unidades de API**: O uso da API é medido em "API units". Diferentes APIs e endpoints consomem diferentes quantidades de unidades. Por exemplo, a Trends API tem seu próprio sistema de "Trends API units".
+*   **Plano Gratuito**: Não há um plano gratuito que ofereça acesso à API. No entanto, alguns planos pagos oferecem um período de teste gratuito.
+*   **Limites de Requisição**: Existem limites de requisições por segundo e por minuto, que variam dependendo da API e do endpoint específico que está sendo acessado.

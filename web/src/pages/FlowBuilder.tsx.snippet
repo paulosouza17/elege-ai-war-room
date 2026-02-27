@@ -1,0 +1,45 @@
+    // Real-time execution subscription
+    const subscribeToExecution = (executionId: string) => {
+        // Unsubscribe from previous if exists
+        if (executionSubscriptionRef.current) {
+            executionSubscriptionRef.current.unsubscribe();
+        }
+
+        const subscription = supabase
+            .channel(`execution-${executionId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'flow_executions',
+                filter: `id=eq.${executionId}`
+            }, (payload) => {
+                console.log('[ExecutionTracking] Update received:', payload.new);
+                setCurrentExecution(payload.new);
+                
+                // Auto-close panel when execution completes
+                if (payload.new.status === 'completed' || payload.new.status === 'failed') {
+                    setTimeout(() => {
+                        if (payload.new.status === 'completed') {
+                            alert("✅ Execução concluída! Verifique o Feed de Inteligência.");
+                        } else {
+                            alert(`❌ Execução falhou: ${payload.new.error_message}`);
+                        }
+                    }, 500);
+                }
+            })
+            .subscribe();
+
+        executionSubscriptionRef.current = subscription;
+
+        // Fetch initial execution data
+        supabase
+            .from('flow_executions')
+            .select('*')
+            .eq('id', executionId)
+            .single()
+            .then(({ data }) => {
+                if (data) {
+                    setCurrentExecution(data);
+                }
+            });
+    };

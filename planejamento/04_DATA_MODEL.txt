@@ -1,0 +1,47 @@
+MODELO DE DADOS — Tabelas base + extensões (DDL lógico)
+
+Tabelas base (core)
+- clients: id, org_id, nome, partido/campanha, UF, janela, contatos, canais_autorizados
+- users: id, org_id, email, nome, status, mfa_enabled (opcional)
+- user_client_roles: user_id, client_id, role
+- roles_permissions: role, action, scope
+
+Setup e versionamento
+- setups: id, client_id, version, status(draft/active/archived), approved_by, approved_at
+- setup_entities: setup_id, tipo(pessoa/tema/portal/perfil/termo_sensível), valor, peso, tags(json)
+
+Fontes e menções
+- sources: id, client_id, tipo(tv/radio/portal/social), nome, score, categoria
+- mentions: id, client_id, source_id, external_id, hash, tipo, titulo, texto, transcript, autor, published_at, url, media_url, metadata_json
+
+Classificação
+- classifications: mention_id, tema, sentimento, narrativa, risco_score, confianca, tags(json), rationale, prompt_version, created_at
+- mention_embeddings (V2 opcional): mention_id, vector, model
+
+Alertas e crises
+- alerts: id, client_id, severidade, gatilho, janela, status, created_at, sent_at, payload_json
+- crisis_packets: id, client_id, severidade, window_start, window_end, resumo, narrativa_dominante,
+  evidencias_json, plano_json, drafts_json, status(draft/aguardando_aprovação/aprovado/enviado),
+  approved_by, approved_at, sent_at
+
+Tarefas e entregas
+- tasks: id, client_id, origin(alert/crisis), destination(CRM), external_task_id, status, created_at
+- deliveries: id, client_id, tipo(diario/semanal/crise), periodo, arquivo_url, sent_at, created_at
+
+Auditoria
+- audit_log: id, actor_user_id, client_id, action, entity_type, entity_id, before_json, after_json, created_at
+
+Integrações (recomendado)
+- integrations: id, client_id, provider(elegeai/whatsapp/slack/email/crm), secrets_ref, status, created_at
+
+Cenários (V2)
+- rulesets: id, client_id, version, json, status, approved_by, approved_at
+- scenarios: id, client_id, name, base_setup_version, ruleset_id, status
+- scenario_runs: id, scenario_id, period_start, period_end, metrics_json, created_by, created_at
+
+Índices essenciais
+- mentions: unique(client_id, external_id) (quando external_id existir)
+- mentions: unique(client_id, hash)
+- classifications: index(mention_id)
+- alerts: index(client_id, created_at), index(client_id, severidade, status)
+- crisis_packets: index(client_id, status, severidade)

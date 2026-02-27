@@ -1,0 +1,64 @@
+BACKLOG (épicos → histórias → tarefas)
+
+ÉPICO A — Fundação
+A1. Infra Postgres/Redis/Storage
+A2. CI/CD staging
+A3. Observabilidade (logs/erros)
+
+ÉPICO B — Segurança e Multi-tenant
+B1. Auth JWT + sessão
+B2. RBAC (org + client)
+B3. RLS policies
+B4. Audit log middleware
+
+ÉPICO C — Ingestão
+C1. Ingestion contract (schema)
+C2. Webhook Elege.AI
+C3. Provider Adapter genérico
+C4. Dedup + índices
+C5. Job enqueue classify_mention
+
+ÉPICO D — Classificação
+D1. Taxonomia (temas/narrativas)
+D2. Prompt versioning
+D3. Classification worker
+D4. KPIs agregados
+
+ÉPICO E — Rules/Alerts
+E1. Window metrics (15m/1h/6h)
+E2. Ruleset V1 (pico, termo sensível, fonte crítica)
+E3. Alerts + status
+E4. Notificação MVP (email + whatsapp)
+
+ÉPICO F — CrisisPacket
+F1. Builder (evidências + brief + drafts + planos)
+F2. Status machine + aprovação
+F3. Notificar aprovador
+F4. Envio + CRM task create
+
+ÉPICO G — Dashboard War Room
+G1. Visão Geral
+G2. Timeline
+G3. CrisisPacket UI
+G4. Setup & Versões
+G5. Relatórios
+
+ÉPICO H — Relatórios
+H1. Template HTML
+H2. Render PDF/Doc
+H3. Scheduler diário/semanal
+H4. Deliveries registry
+
+ÉPICO I — Setup Versioning
+I1. CRUD setups e setup_entities
+I2. Diff/rollback
+I3. Aprovação de setup
+
+ÉPICO J — Scenario Engine (V2)
+J1. Rulesets versionados
+J2. Scenarios + runs
+J3. Replay histórico
+J4. Comparativos + custo
+
+Sugestão de ordem:
+A → B → C → D → E → F → G → H → I → J

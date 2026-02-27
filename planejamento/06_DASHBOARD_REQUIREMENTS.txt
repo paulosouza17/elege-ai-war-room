@@ -1,0 +1,39 @@
+DASHBOARD — Telas (War Room)
+
+Tela 1 — Visão Geral
+- Severidade atual
+- Volume por canal (TV/Rádio/Portais/Sociais)
+- Tendência (últimas 24h)
+- Narrativa dominante
+- Top fontes/veículos
+Requisitos:
+- Filtros por período, canal, tema, severidade
+- Paginação e performance
+
+Tela 2 — Timeline de Crise
+- Eventos por hora
+- Menções-chave com evidências
+- Quem publicou primeiro vs quem amplificou
+Requisitos:
+- “Drill-down” para mention (texto/transcrição + fonte + link)
+- Agrupamento por narrativa/tema
+
+Tela 3 — CrisisPacket
+- Resumo
+- Evidências
+- Drafts
+- Plano 2h/24h/72h
+- Botões: aprovar / editar / enviar / registrar ação
+Requisitos:
+- Bloqueio de envio sem aprovação
+- Rastro de alterações (audit)
+
+Tela 4 — Setup & Versões
+- v1/v2/v3 do perímetro
+- diffs entre versões
+- aprovação e rollback
+
+Tela 5 — Relatórios
+- lista de deliveries
+- download
+- status de envio

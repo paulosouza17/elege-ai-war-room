@@ -1,0 +1,97 @@
+# Pesquisa sobre a API Ahrefs
+
+## Introdução
+
+A API Ahrefs v3 permite que usuários do plano Enterprise extraiam dados de backlinks e de classificação do Site Explorer, bem como métricas de palavras-chave do Keywords Explorer. Com a API, é possível usar dados do espaço de trabalho do Ahrefs para criar integrações e automações personalizadas. Atualmente, a API v3 permite extrair dados dos seguintes endpoints:
+
+*   **Site Explorer:** Estatísticas gerais e gráficos históricos, backlinks, tráfego orgânico e pago.
+*   **Keywords Explorer:** Métricas para uma única palavra-chave ou uma lista de palavras-chave, histórico de volume de pesquisa e volume por país, relatórios de ideias de palavras-chave.
+*   **Site Audit:** Health Scores de projetos, relatórios completos de problemas e conteúdo de páginas rastreadas.
+*   **SERP Overview:** Top 100 resultados da SERP.
+*   **Rank Tracker:** Visão geral do projeto, relatórios de concorrentes e SERPs do Rank Tracker.
+*   **Batch Analysis:** Métricas para até 100 alvos por solicitação.
+*   **Brand Radar:** Estatísticas gerais da marca, gráficos de desempenho histórico e prompts reais com citações em vários agentes de IA.
+*   **Management:** Endpoints para gerenciar seus projetos do Rank Tracker e listas do Keywords Explorer.
+*   **Subscription information:** Seus limites e uso da API.
+*   **Public endpoints:** Endereços IP e intervalos de nosso rastreador.
+
+## Planos e Limitações
+
+A API Ahrefs está totalmente disponível para planos Enterprise. Em todos os outros planos, você ainda terá acesso a um conjunto limitado de consultas de teste gratuitas. Todas as solicitações, exceto as consultas de teste gratuitas e os endpoints _Rank Tracker_, _Management_, _Public_ e _alguns outros_, consomem **unidades de API**. O custo depende do número de linhas em uma resposta e dos campos solicitados. O custo mínimo para qualquer solicitação é de **50 unidades**. Se um endpoint for gratuito, você verá uma nota sobre isso em sua página de documentação; caso contrário, ele consome unidades.
+
+Os planos Enterprise incluem um certo número de unidades de API. Se você consumir unidades além do limite do seu plano, elas serão cobradas automaticamente com base no uso (pay-as-you-go).
+
+A API Ahrefs é limitada a 60 solicitações por minuto por padrão. Se esse limite for excedido, a API responderá com um código de status HTTP 429 (Too Many Requests).
+
+
+## Endpoints do Site Explorer
+
+### Domain Rating
+
+*   **Endpoint:** `https://api.ahrefs.com/v3/site-explorer/domain-rating`
+*   **Método:** GET
+*   **Descrição:** Retorna a classificação de domínio (DR) de um alvo, que é a força do perfil de backlinks de um site em uma escala logarítmica de 100 pontos.
+*   **Parâmetros de Entrada:**
+    *   `date` (string, obrigatório): A data para relatar as métricas no formato AAAA-MM-DD.
+    *   `target` (string, obrigatório): O alvo da pesquisa: um domínio ou um URL.
+    *   `output` (string, opcional): O formato de saída. Valores permitidos: `json`, `csv`, `xml`, `php`.
+    *   `protocol` (string, opcional): O protocolo do seu alvo. Valores permitidos: `both`, `http`, `https` (padrão: `both`).
+*   **Resposta de Saída (JSON):**
+    ```json
+    {
+      "domain_rating": {
+        "domain_rating": -3.402823669209385e+38,
+        "ahrefs_rank": 0
+      }
+    }
+    ```
+    *   `domain_rating` (float): A força do perfil de backlinks do seu alvo em comparação com os outros sites em nosso banco de dados em uma escala logarítmica de 100 pontos.
+    *   `ahrefs_rank` (integer ou null): A força do perfil de backlinks do seu alvo em comparação com os outros sites em nosso banco de dados, com a classificação #1 sendo a mais forte.
+
+
+### Backlinks
+
+*   **Endpoint:** `https://api.ahrefs.com/v3/site-explorer/all-backlinks`
+*   **Método:** GET
+*   **Descrição:** Retorna a lista de backlinks para um alvo.
+*   **Parâmetros de Entrada:**
+    *   `select` (string, obrigatório): Uma lista de colunas separadas por vírgula para retornar.
+    *   `target` (string, obrigatório): O alvo da pesquisa: um domínio ou um URL.
+    *   `aggregation` (string, opcional): O modo de agrupamento de backlinks. Valores permitidos: `similar_links`, `1_per_domain`, `all` (padrão: `similar_links`).
+    *   `history` (string, opcional): Um período de tempo para adicionar backlinks perdidos ao relatório. Escolha entre `live` (sem histórico), `since:<date>` (histórico desde uma data especificada) e `all_time` (histórico completo). A data deve estar no formato AAAA-MM-DD (padrão: `all_time`).
+    *   `limit` (integer, opcional): O número de resultados a serem retornados (padrão: 1000).
+    *   `mode` (string, opcional): O escopo da pesquisa com base no alvo que você inseriu. Valores permitidos: `exact`, `prefix`, `domain`, `subdomains` (padrão: `subdomains`).
+    *   `order_by` (string, opcional): Uma coluna para ordenar os resultados.
+    *   `output` (string, opcional): O formato de saída. Valores permitidos: `json`, `csv`, `xml`, `php`.
+    *   `protocol` (string, opcional): O protocolo do seu alvo. Valores permitidos: `both`, `http`, `https` (padrão: `both`).
+    *   `timeout` (integer, opcional): Uma duração de tempo limite manual em segundos.
+    *   `where` (string, opcional): A expressão de filtro.
+*   **Resposta de Saída (JSON):** Um array de objetos de backlinks, cada um contendo informações detalhadas sobre o backlink, como `ahrefs_rank_source`, `anchor`, `url_from`, `url_to`, etc.
+
+
+## Valor para Monitoramento 360
+
+A API da Ahrefs oferece um valor significativo para um sistema de monitoramento 360, que visa acompanhar menções e a presença de uma marca em diversas mídias, como TV, rádio, redes sociais e portais de notícias. A capacidade da Ahrefs de rastrear a web em busca de backlinks e menções a torna uma ferramenta poderosa para complementar o monitoramento de mídias tradicionais e sociais.
+
+O principal valor agregado reside na capacidade de **monitorar a presença online de uma marca de forma ampla e detalhada**. Através dos endpoints da API, é possível obter dados que permitem:
+
+*   **Identificar Menções em Portais de Notícias e Blogs:** Ao monitorar os backlinks para o site de uma marca, o sistema pode identificar quando um portal de notícias ou blog publica um link para a marca, indicando uma menção. A análise do texto âncora e do conteúdo da página de origem pode fornecer o contexto da menção.
+
+*   **Analisar a Reputação e Autoridade da Fonte:** A API fornece métricas como o Domain Rating (DR), que ajuda a avaliar a autoridade e a influência do site que fez a menção. Isso permite que o sistema de monitoramento 360 priorize e qualifique as menções com base na importância da fonte.
+
+*   **Acompanhar a Viralização de Conteúdo:** O monitoramento de backlinks ao longo do tempo pode indicar a viralização de um conteúdo ou notícia. Um aumento súbito no número de backlinks para uma página específica do site da marca pode sinalizar um pico de interesse e compartilhamento.
+
+*   **Inteligência Competitiva:** A API pode ser usada para monitorar os concorrentes, analisando seus backlinks, menções na imprensa e estratégias de conteúdo. Isso fornece insights valiosos para o planejamento estratégico da marca.
+
+*   **Complementar o Monitoramento de Redes Sociais:** Embora a Ahrefs não monitore diretamente as redes sociais, ela pode identificar links para o site da marca que são compartilhados em plataformas sociais, complementando as ferramentas de monitoramento de redes sociais.
+
+Em resumo, a integração da API da Ahrefs a um sistema de monitoramento 360 enriquece a coleta de dados com informações valiosas do ambiente online, permitindo uma visão mais completa e aprofundada da presença e reputação de uma marca.
+
+
+## Planos e Limitações da API
+
+O acesso à API da Ahrefs está disponível principalmente para os assinantes do plano **Enterprise**. Este plano tem um custo de **$1.499 por mês**, com um compromisso anual. O plano Enterprise inclui **2 milhões de unidades de integração de API por mês**.
+
+Para outros planos, como Lite, Standard e Advanced, o acesso à API é limitado a um conjunto de **consultas de teste gratuitas**. O consumo de API é medido em **unidades de API**, e cada solicitação consome um mínimo de **50 unidades**. O custo exato de uma solicitação depende do número de linhas retornadas e dos campos solicitados.
+
+É importante notar que a Ahrefs não oferece um período de teste gratuito para a API, mas os usuários podem se inscrever no **Ahrefs Webmaster Tools** para obter acesso limitado e gratuito ao Site Explorer e ao Site Audit, o que pode dar uma ideia das funcionalidades disponíveis, mas não do acesso completo à API.
