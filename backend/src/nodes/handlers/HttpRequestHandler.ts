@@ -5,7 +5,7 @@ export class HttpRequestHandler implements NodeHandler {
     async execute(node: any, context: ExecutionContext): Promise<NodeOutput> {
         await context.logger(`[HttpRequestHandler] Executing HTTP request...`);
 
-        let url = interpolate(node.data.url || '', context);
+        let url = interpolate(node.data.url || node.data.httpUrl || '', context);
 
         // Encode query parameter values (interpolation inserts raw text like "Flavio Bolsonaro")
         // This fixes spaces/accents that cause 500 errors on target APIs like Rails
@@ -39,7 +39,8 @@ export class HttpRequestHandler implements NodeHandler {
         }
 
         // Parse headers
-        let headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const methodsWithBody = ['POST', 'PUT', 'PATCH', 'DELETE'];
+        let headers: Record<string, string> = methodsWithBody.includes(method) ? { 'Content-Type': 'application/json' } : {};
         if (rawHeaders.trim()) {
             try {
                 const interpolatedHeaders = interpolate(rawHeaders, context);
@@ -54,7 +55,7 @@ export class HttpRequestHandler implements NodeHandler {
         let body: any = undefined;
 
         if (rawBody.trim()) {
-            // User provided explicit body — ALWAYS send it regardless of HTTP method
+            // User provided explicit body — parse it
             const interpolatedBody = interpolate(rawBody, context);
             await context.logger(`[HttpRequestHandler] Interpolated body: ${interpolatedBody.substring(0, 300)}`);
             try {
@@ -85,6 +86,12 @@ export class HttpRequestHandler implements NodeHandler {
                     await context.logger(`[HttpRequestHandler] Auto-body from all upstream: ${Object.keys(allUpstream).join(', ')}`);
                 }
             }
+        }
+
+        // ⛔ GUARD: GET/HEAD CANNOT have body — strip it and warn
+        if (body !== undefined && ['GET', 'HEAD'].includes(method)) {
+            await context.logger(`[HttpRequestHandler] ⚠ Body stripped for ${method} request (GET/HEAD cannot have body). Body was: ${JSON.stringify(body).substring(0, 200)}`);
+            body = undefined;
         }
 
         await context.logger(`[HttpRequestHandler] ${method} ${url}`);
@@ -118,8 +125,8 @@ export class HttpRequestHandler implements NodeHandler {
                         signal: controller.signal,
                     };
 
-                    // Only include body for methods that support it
-                    if (body !== undefined && body !== null) {
+                    // Only include body for methods that support it (GET/HEAD cannot have body in Node 18+)
+                    if (body !== undefined && body !== null && methodsWithBody.includes(method)) {
                         fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
                     }
 

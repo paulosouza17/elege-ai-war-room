@@ -2140,4 +2140,161 @@ result = {
             { id: 'e-script-publish', source: 'script-direct-map', target: 'publish-feed', type: 'deletable' },
         ],
     },
+
+    // ─────────────────────────────────────────────────────
+    // MONITORAMENTO WHATSAPP (Grupos via Elege.AI)
+    // ─────────────────────────────────────────────────────
+    {
+        id: 'whatsapp-monitoring',
+        name: 'Monitoramento WhatsApp',
+        description: 'Busca grupos WhatsApp via Elege.AI, coleta menções recentes de cada canal WhatsApp, filtra por entidades monitoradas, classifica ameaças e publica no feed.',
+        icon: '💬',
+        category: 'monitoring',
+        nodes: [
+            {
+                id: 'trigger-1',
+                type: 'trigger',
+                position: { x: 400, y: 50 },
+                data: {
+                    label: '🔔 Ativação / Agendamento',
+                    iconType: 'activation',
+                    triggerType: 'activation',
+                    color: '#22c55e',
+                },
+            },
+            {
+                id: 'whatsapp-groups',
+                type: 'action',
+                position: { x: 400, y: 200 },
+                data: {
+                    label: '💬 Listar Grupos WhatsApp',
+                    iconType: 'whatsapp',
+                    action: 'list_groups',
+                    color: '#25d366',
+                },
+            },
+            {
+                id: 'loop-groups',
+                type: 'action',
+                position: { x: 400, y: 350 },
+                data: {
+                    label: '🔄 Loop: Para cada Grupo',
+                    iconType: 'loop',
+                    loopVariable: 'whatsapp-groups.groups',
+                    loopAlias: 'group',
+                    color: '#8b5cf6',
+                },
+            },
+            {
+                id: 'http-mentions',
+                type: 'action',
+                position: { x: 400, y: 500 },
+                data: {
+                    label: '📡 Buscar Menções do Grupo',
+                    iconType: 'httprequest',
+                    httpMethod: 'GET',
+                    httpUrl: '{{ELEGE_BASE_URL}}/api/analytics/mentions/latest?period=today&limit=50&channel_id={{loop-groups.group.channel_id}}',
+                    httpHeaders: JSON.stringify({ 'Authorization': 'Bearer {{ELEGE_TOKEN}}' }, null, 2),
+                    color: '#f97316',
+                },
+            },
+            {
+                id: 'script-filter',
+                type: 'action',
+                position: { x: 400, y: 700 },
+                data: {
+                    label: '⚡ Filtrar Entidades + Classificar Ameaça',
+                    iconType: 'script',
+                    scriptTemplate: 'custom',
+                    scriptCode: `// Filter mentions by activation entities and classify threats
+const mentions = input['http-mentions']?.response_mentions || input['http-mentions']?.items || [];
+const group = input['loop-groups']?.group || {};
+const entities = context.activation?.monitored_entities || context.activation?.people_of_interest || [];
+const keywords = context.activation?.keywords || [];
+const allTerms = [...entities, ...keywords];
+
+const results = [];
+for (const m of mentions) {
+  const text = (m.subject || m.content || '').toLowerCase();
+  const person = (m.person?.name || '').toLowerCase();
+  const matched = allTerms.filter(t => text.includes(t.toLowerCase()) || person.includes(t.toLowerCase()));
+  
+  if (matched.length === 0) continue;
+  
+  const sentiment = m.sentiment || 0;
+  const isNegative = sentiment < 0 || sentiment === -1;
+  const threatLevel = (isNegative && matched.length >= 2) ? 'critical'
+    : (isNegative || matched.length >= 1) ? 'moderate'
+    : 'low';
+  const riskScore = threatLevel === 'critical' ? 85 : threatLevel === 'moderate' ? 55 : 25;
+  
+  results.push({
+    title: m.subject || 'Mensagem WhatsApp relevante',
+    content: m.subject || text.substring(0, 500),
+    source: group.name || 'Grupo WhatsApp',
+    source_type: 'whatsapp',
+    sentiment: isNegative ? 'negative' : 'neutral',
+    risk_score: riskScore,
+    classification_metadata: {
+      whatsapp_group_id: group.id,
+      whatsapp_group_name: group.name,
+      detected_entities: matched,
+      keywords: keywords.filter(k => text.includes(k.toLowerCase())),
+      threat_level: threatLevel,
+      threat_reason: 'Match: ' + matched.join(', ') + (isNegative ? ' + sentimento negativo' : ''),
+      person_name: m.person?.name,
+    }
+  });
+}
+
+result = { items: results, count: results.length, hasItems: results.length > 0 };`,
+                    color: '#ef4444',
+                },
+            },
+            {
+                id: 'conditional-has',
+                type: 'condition',
+                position: { x: 400, y: 900 },
+                data: {
+                    label: '🔀 Tem Ameaças?',
+                    iconType: 'conditional',
+                    conditionSource: 'script-filter.hasItems',
+                    conditionOperator: 'equals',
+                    conditionValue: 'true',
+                    color: '#6366f1',
+                },
+            },
+            {
+                id: 'loop-publish',
+                type: 'action',
+                position: { x: 400, y: 1050 },
+                data: {
+                    label: '🔄 Loop: Publicar Cada Ameaça',
+                    iconType: 'loop',
+                    loopVariable: 'script-filter.items',
+                    loopAlias: 'threat',
+                    color: '#8b5cf6',
+                },
+            },
+            {
+                id: 'publish-feed',
+                type: 'action',
+                position: { x: 400, y: 1200 },
+                data: {
+                    label: '🚀 Publicar no Feed + Ameaças',
+                    iconType: 'publish',
+                    color: '#10b981',
+                },
+            },
+        ],
+        edges: [
+            { id: 'e-trigger-wpp', source: 'trigger-1', target: 'whatsapp-groups', type: 'deletable' },
+            { id: 'e-wpp-loop', source: 'whatsapp-groups', target: 'loop-groups', type: 'deletable' },
+            { id: 'e-loop-http', source: 'loop-groups', target: 'http-mentions', type: 'deletable' },
+            { id: 'e-http-script', source: 'http-mentions', target: 'script-filter', type: 'deletable' },
+            { id: 'e-script-cond', source: 'script-filter', target: 'conditional-has', type: 'deletable' },
+            { id: 'e-cond-loop', source: 'conditional-has', target: 'loop-publish', type: 'deletable', sourceHandle: 'true' },
+            { id: 'e-loop-publish', source: 'loop-publish', target: 'publish-feed', type: 'deletable' },
+        ],
+    },
 ];

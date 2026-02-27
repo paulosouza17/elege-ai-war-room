@@ -106,6 +106,16 @@ export class AnalysisHandler implements NodeHandler {
 
         await context.logger(`[AnalysisHandler] Found ${itemsToAnalyze.length} items to analyze.`);
 
+        // CAP: Limit items to prevent timeout (each AI call ≈ 5-30s with retries)
+        // 15 items × 30s worst-case = ~7.5 min — fits within 5-10 min executor budget
+        const MAX_ITEMS_PER_EXECUTION = 15;
+        if (itemsToAnalyze.length > MAX_ITEMS_PER_EXECUTION) {
+            await context.logger(`[AnalysisHandler] ⚠ Capping from ${itemsToAnalyze.length} to ${MAX_ITEMS_PER_EXECUTION} items to prevent timeout.`);
+            // Sort by engagement (highest first) to prioritize impactful content
+            itemsToAnalyze.sort((a, b) => (b.engagement || b.likes || 0) - (a.engagement || a.likes || 0));
+            itemsToAnalyze = itemsToAnalyze.slice(0, MAX_ITEMS_PER_EXECUTION);
+        }
+
         // Read node config
         const config = node.data || {};
         const userPrompt = config.prompt || '';

@@ -8,6 +8,7 @@ node_modules/
 .env.local
 .env.production
 .env.staging
+!.env.example
 
 # Build output
 dist/
@@ -41,6 +42,16 @@ temp_*.ts
 antigravity-kit-main/
 .agent/
 _agent/
+
+# Internal docs (not for repository)
+planejamento/
+documentation/
+Documentação implementação fonte de dados/
+
+# Backend temp files
+backend/last_completed_log.json
+backend/flavio_flow.json
+backend/fetch_token.js
 
 # Coverage & test artifacts
 coverage/

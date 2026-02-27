@@ -33,7 +33,7 @@ Plataforma de monitoramento em tempo real que combina rastreamento de mídia, an
 | Database | Supabase (PostgreSQL) |
 | IA | Google Gemini (2.5 Flash, Flash Lite, Pro) |
 | Cache | Redis + BullMQ |
-| Deploy | — |
+| Deploy | PM2 + Nginx (VPS) ou Docker Compose |
 
 ---
 
@@ -58,9 +58,28 @@ npm run dev:all       # Server + Flow Worker
 
 ```bash
 cd web
+cp .env.example .env  # Configurar variáveis
 npm install
 npm run dev           # Vite dev server (porta 5173)
 ```
+
+---
+
+## 🚀 Deploy em Produção
+
+Todos os arquivos de instalação e requisitos de servidor estão em [`install/`](./install/).
+
+```bash
+# Via script automático (VPS Ubuntu):
+cd install
+sudo ./setup-vps.sh --domain warroom.seudominio.com
+
+# Via Docker:
+cd install
+docker compose up -d --build
+```
+
+👉 **Guia completo:** [install/README.md](./install/README.md)
 
 ---
 
@@ -77,13 +96,25 @@ sistema/
 │   │   ├── routes/         # API REST endpoints
 │   │   ├── services/       # FlowExecutor, AIService
 │   │   └── workers/        # Flow Worker, Scheduler
+│   ├── Dockerfile
+│   ├── deploy.sh
+│   ├── ecosystem.config.js
 │   └── package.json
 ├── web/
 │   ├── src/
 │   │   ├── components/     # UI Components
 │   │   ├── pages/          # FlowBuilder, Dashboard, etc.
 │   │   └── lib/            # Supabase client
+│   ├── Dockerfile
 │   └── package.json
+├── install/                # ⬅️ Instalação & Requisitos de Servidor
+│   ├── README.md           # Guia completo de deploy
+│   ├── setup-vps.sh        # Instalador automático (VPS)
+│   ├── docker-compose.yml  # Deploy via Docker
+│   ├── nginx/warroom.conf  # Template Nginx
+│   └── env-examples/       # Templates de variáveis de ambiente
+├── migrations/             # SQL migrations
+├── docs/                   # Documentação técnica
 └── README.md
 ```
 
@@ -113,3 +144,4 @@ sistema/
 
 Este software é de propriedade exclusiva do autor. Todos os direitos reservados.
 Uso, cópia, modificação ou distribuição sem autorização expressa é proibido.
+

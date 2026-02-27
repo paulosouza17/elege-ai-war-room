@@ -1,6 +1,7 @@
 # ═══════════════════════════════════════════════════════════════
-#  Elege.ai WAR ROOM — Docker Compose (Alternative Deploy)
-#  Usage:
+#  Elege.ai WAR ROOM — Docker Compose (Production Deploy)
+#
+#  Run from the install/ directory:
 #    docker compose up -d          # Start all
 #    docker compose logs -f        # Follow logs
 #    docker compose down           # Stop all
@@ -19,7 +20,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,14 +28,14 @@ services:
   # ── Backend API + Worker ──
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     container_name: warroom-backend
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
     env_file:
-      - ./backend/.env
+      - ../backend/.env
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
@@ -44,7 +45,7 @@ services:
     volumes:
       - backend_logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/v1/health" ]
       interval: 30s
       timeout: 10s
       start_period: 20s
@@ -53,7 +54,7 @@ services:
   # ── Frontend (build + serve via Nginx) ──
   web:
     build:
-      context: ./web
+      context: ../web
       dockerfile: Dockerfile
     container_name: warroom-web
     restart: unless-stopped

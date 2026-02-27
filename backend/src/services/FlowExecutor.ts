@@ -18,6 +18,7 @@ import { BuzzSumoHandler } from '../nodes/handlers/BuzzSumoHandler';
 import { PerplexityHandler } from '../nodes/handlers/PerplexityHandler';
 import { ManusHandler } from '../nodes/handlers/ManusHandler';
 import { GoogleTrendsHandler } from '../nodes/handlers/GoogleTrendsHandler';
+import { WhatsAppHandler } from '../nodes/handlers/WhatsAppHandler';
 
 export class FlowExecutor {
     private handlers: Record<string, NodeHandler> = {};
@@ -102,6 +103,10 @@ export class FlowExecutor {
 
         if (iconType === 'script') {
             return new ScriptHandler();
+        }
+
+        if (iconType === 'whatsapp') {
+            return new WhatsAppHandler();
         }
 
         if (node.type === 'publish') return new PublishHandler();

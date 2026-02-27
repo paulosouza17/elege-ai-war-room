@@ -137,46 +137,56 @@ export class PublishHandler implements NodeHandler {
         }
 
         // 2. FORMAT FOR DB
-        const feedItems = itemsToPublish.map(item => ({
-            title: item.title || 'Sem título',
-            summary: item.summary || item.content?.substring(0, 500) || '',
-            content: item.content || item.text || '',
-            url: item.url,
-            source: item.source_name || item.source || 'Fonte não identificada',
-            source_type: item.source_type || item.content_type_detected || 'portal',
-            published_at: item.published_at || new Date().toISOString(),
-            risk_score: item.risk_score || 0,
-            sentiment: item.sentiment || 'neutral',
-            keywords: item.keywords || [],
-            classification_metadata: {
-                reasoning: item.relevance_justification || item.context_analysis || item.summary || null,
+        const feedItems = itemsToPublish.map(item => {
+            // Auto-detect TV/streaming: YouTube URLs should be 'tv', not 'social_media'
+            const itemUrl = (item.url || '').toLowerCase();
+            const isYouTube = itemUrl.includes('youtube.com') || itemUrl.includes('youtu.be');
+            let resolvedSourceType = item.source_type || item.content_type_detected || 'portal';
+            if (isYouTube && (resolvedSourceType === 'social_media' || resolvedSourceType === 'portal')) {
+                resolvedSourceType = 'tv';
+            }
+
+            return {
+                title: item.title || 'Sem título',
+                summary: item.summary || item.content?.substring(0, 500) || '',
+                content: item.content || item.text || '',
+                url: item.url,
+                source: item.source_name || item.source || 'Fonte não identificada',
+                source_type: resolvedSourceType,
+                published_at: item.published_at || new Date().toISOString(),
+                risk_score: item.risk_score || 0,
+                sentiment: item.sentiment || 'neutral',
                 keywords: item.keywords || [],
-                entities: item.entities || [],
-                detected_entities: item.detected_entities || [],
-                per_entity_analysis: item.per_entity_analysis || [],
-                source_name: item.source_name || null,
-                content_type_detected: item.content_type_detected || null,
-                portal_name: item.portal_name || null,
-                portal_type: item.portal_type || null,
-                assets: item.assets || [],
-                elege_post_id: item.elege_post_id || null,
-                elege_mention_id: item.elege_mention_id || null,
-                engagement: item.engagement || null,
-                subject_category: item.subject_category || null,
-                // Twitter/X author metadata
-                author_name: item.author_name || null,
-                author_username: item.author_username || null,
-                author_profile_image: item.author_profile_image || null,
-                author_followers: item.author_followers || null,
-                author_verified: item.author_verified || null,
-                likes: item.likes || null,
-                retweets: item.retweets || null,
-                replies: item.replies || null,
-                impressions: item.impressions || null,
-            },
-            activation_id: context.activationId,
-            user_id: context.userId
-        }));
+                classification_metadata: {
+                    reasoning: item.relevance_justification || item.context_analysis || item.summary || null,
+                    keywords: item.keywords || [],
+                    entities: item.entities || [],
+                    detected_entities: item.detected_entities || [],
+                    per_entity_analysis: item.per_entity_analysis || [],
+                    source_name: item.source_name || null,
+                    content_type_detected: item.content_type_detected || null,
+                    portal_name: item.portal_name || null,
+                    portal_type: item.portal_type || null,
+                    assets: item.assets || [],
+                    elege_post_id: item.elege_post_id || null,
+                    elege_mention_id: item.elege_mention_id || null,
+                    engagement: item.engagement || null,
+                    subject_category: item.subject_category || null,
+                    // Twitter/X author metadata
+                    author_name: item.author_name || null,
+                    author_username: item.author_username || null,
+                    author_profile_image: item.author_profile_image || null,
+                    author_followers: item.author_followers || null,
+                    author_verified: item.author_verified || null,
+                    likes: item.likes || null,
+                    retweets: item.retweets || null,
+                    replies: item.replies || null,
+                    impressions: item.impressions || null,
+                },
+                activation_id: context.activationId,
+                user_id: context.userId
+            };
+        });
 
         // 3. INSERT FEED ITEMS
         const { error } = await supabase

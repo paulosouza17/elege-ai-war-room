@@ -6,7 +6,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import {
     Activity, TrendingUp, TrendingDown, Users, AlertOctagon, ArrowUpRight, ArrowDownRight,
     MessageSquare, RefreshCw, Shield, Newspaper, Eye, BarChart3, Zap, MapPin, Layers, Trash2,
-    X, Clock, ShieldAlert, Loader2
+    X, Clock, ShieldAlert, Loader2, ChevronDown, ChevronUp, Archive, ExternalLink
 } from 'lucide-react';
 import { WordCloudChart } from '@/components/dashboard/WordCloud';
 import { PermissionGate } from '@/components/auth/PermissionGate';
@@ -14,6 +14,8 @@ import { supabase } from '@/lib/supabase';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUserActivations } from '@/hooks/useUserActivations';
+import { CrisisEscalationModal } from '@/components/CrisisEscalationModal';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardStats {
     total_mentions: number;
@@ -60,6 +62,10 @@ export const Dashboard: React.FC = () => {
     const [feedTotal, setFeedTotal] = useState(0);
     const [feedHasMore, setFeedHasMore] = useState(false);
     const [feedLoadingMore, setFeedLoadingMore] = useState(false);
+    const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
+    const [escalationAlert, setEscalationAlert] = useState<any | null>(null);
+    const [archivingId, setArchivingId] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const handleWordClick = useCallback(async (word: string) => {
         setSelectedWord(word);
@@ -713,46 +719,138 @@ export const Dashboard: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="divide-y divide-slate-700/50">
-                                    {s.recent_alerts.map((alert: any) => (
-                                        <div key={alert.id} className="p-4 hover:bg-slate-800/50 transition-colors flex items-start gap-4">
-                                            <div className="mt-1">
-                                                <div className={`w-2 h-2 rounded-full ${(alert.risk_score || 0) >= 70 ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}`}></div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                        {alert.risk_score != null && (
-                                                            <Badge variant={(alert.risk_score || 0) >= 70 ? 'danger' : 'warning'}>
-                                                                RISCO {alert.risk_score}
-                                                            </Badge>
-                                                        )}
-                                                        {alert.sentiment === 'negative' && (
-                                                            <Badge variant="danger" className="bg-red-950 text-red-300 border-red-800">
-                                                                Negativo
-                                                            </Badge>
-                                                        )}
-                                                        <Badge variant="default">{alert.source || 'Fonte desconhecida'}</Badge>
+                                    {s.recent_alerts.map((alert: any) => {
+                                        const isExpanded = expandedAlertId === alert.id;
+                                        const entities = alert.classification_metadata?.detected_entities || [];
+                                        const fullContent = alert.content || alert.text || alert.summary || '';
+                                        return (
+                                            <div key={alert.id} className="border-b border-slate-700/50 last:border-0">
+                                                {/* Alert Header Row — always visible */}
+                                                <div
+                                                    className={`p-4 hover:bg-slate-800/50 transition-colors flex items-start gap-4 cursor-pointer ${isExpanded ? 'bg-slate-800/30' : ''}`}
+                                                    onClick={() => setExpandedAlertId(isExpanded ? null : alert.id)}
+                                                >
+                                                    <div className="mt-1">
+                                                        <div className={`w-2 h-2 rounded-full ${(alert.risk_score || 0) >= 70 ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}`}></div>
                                                     </div>
-                                                    <span className="text-xs text-slate-500 font-mono">
-                                                        {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: ptBR })}
-                                                    </span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                {alert.risk_score != null && (
+                                                                    <Badge variant={(alert.risk_score || 0) >= 70 ? 'danger' : 'warning'}>
+                                                                        RISCO {alert.risk_score}
+                                                                    </Badge>
+                                                                )}
+                                                                {alert.sentiment === 'negative' && (
+                                                                    <Badge variant="danger" className="bg-red-950 text-red-300 border-red-800">
+                                                                        Negativo
+                                                                    </Badge>
+                                                                )}
+                                                                <Badge variant="default">{alert.source || 'Fonte desconhecida'}</Badge>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                <span className="text-xs text-slate-500 font-mono">
+                                                                    {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: ptBR })}
+                                                                </span>
+                                                                {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                                                            </div>
+                                                        </div>
+                                                        <h4 className="text-sm font-semibold text-white mb-1">
+                                                            {alert.title || 'Sem título'}
+                                                        </h4>
+                                                        <p className="text-xs text-slate-400 line-clamp-2">
+                                                            {alert.summary || 'Análise pendente'}
+                                                        </p>
+                                                        {alert.keywords?.length > 0 && (
+                                                            <div className="flex gap-1 mt-2 flex-wrap">
+                                                                {alert.keywords.slice(0, 4).map((kw: string, i: number) => (
+                                                                    <span key={i} className="text-[10px] px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">{kw}</span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <h4 className="text-sm font-semibold text-white mb-1">
-                                                    {alert.title || 'Sem título'}
-                                                </h4>
-                                                <p className="text-xs text-slate-400 line-clamp-2">
-                                                    {alert.summary || 'Análise pendente'}
-                                                </p>
-                                                {alert.keywords?.length > 0 && (
-                                                    <div className="flex gap-1 mt-2 flex-wrap">
-                                                        {alert.keywords.slice(0, 4).map((kw: string, i: number) => (
-                                                            <span key={i} className="text-[10px] px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-400">{kw}</span>
-                                                        ))}
+
+                                                {/* Expanded Detail Panel */}
+                                                {isExpanded && (
+                                                    <div className="px-4 pb-4 pt-0 pl-10 animate-in slide-in-from-top-2 duration-200">
+                                                        <div className="bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 space-y-3">
+                                                            {/* Full Content */}
+                                                            <div className="text-sm text-slate-300 leading-relaxed max-h-48 overflow-y-auto pr-2 whitespace-pre-wrap">
+                                                                {fullContent || 'Sem conteúdo detalhado.'}
+                                                            </div>
+
+                                                            {/* Detected Entities */}
+                                                            {entities.length > 0 && (
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="text-[10px] text-slate-500 uppercase font-semibold">Entidades:</span>
+                                                                    {entities.map((e: string, i: number) => (
+                                                                        <span key={i} className="text-[10px] px-2 py-0.5 bg-primary/10 border border-primary/20 rounded-full text-primary font-medium">{e}</span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
+                                                            {/* URL Link */}
+                                                            {alert.url && (
+                                                                <a
+                                                                    href={alert.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 transition-colors w-fit"
+                                                                    onClick={e => e.stopPropagation()}
+                                                                >
+                                                                    <ExternalLink className="w-3 h-3" />
+                                                                    {alert.url.length > 60 ? alert.url.substring(0, 60) + '...' : alert.url}
+                                                                </a>
+                                                            )}
+
+                                                            {/* Action Buttons */}
+                                                            <div className="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        navigate('/feed');
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5" />
+                                                                    Ver no Feed
+                                                                </button>
+                                                                <button
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        setArchivingId(alert.id);
+                                                                        await supabase.from('intelligence_feed').update({ status: 'archived' }).eq('id', alert.id);
+                                                                        setStats(prev => {
+                                                                            if (!prev) return prev;
+                                                                            return { ...prev, recent_alerts: prev.recent_alerts.filter((a: any) => a.id !== alert.id) };
+                                                                        });
+                                                                        setExpandedAlertId(null);
+                                                                        setArchivingId(null);
+                                                                    }}
+                                                                    disabled={archivingId === alert.id}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-all disabled:opacity-50"
+                                                                >
+                                                                    {archivingId === alert.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />}
+                                                                    Arquivar
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setEscalationAlert(alert);
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg transition-all"
+                                                                >
+                                                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                                                    Escalar Crise
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                             {alertsHasMore && (
@@ -1055,6 +1153,24 @@ export const Dashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Escalation Modal */}
+            {escalationAlert && (
+                <CrisisEscalationModal
+                    isOpen={true}
+                    onClose={() => setEscalationAlert(null)}
+                    mention={escalationAlert}
+                    allMentions={s.recent_alerts}
+                    onSuccess={() => {
+                        setStats(prev => {
+                            if (!prev) return prev;
+                            return { ...prev, recent_alerts: prev.recent_alerts.filter((a: any) => a.id !== escalationAlert.id) };
+                        });
+                        setEscalationAlert(null);
+                        setExpandedAlertId(null);
+                    }}
+                />
             )}
 
             <style>{`

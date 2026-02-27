@@ -31,7 +31,10 @@ import {
     Download,
     Scissors,
     Heart,
-    BarChart3
+    BarChart3,
+    MessageCircle,
+    Eye,
+    ChevronDown
 } from 'lucide-react';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
@@ -273,6 +276,15 @@ const KeywordAnalysis: React.FC<KeywordAnalysisProps> = ({ keyword, isShared, on
     );
 };
 
+// Safe string helper: prevents React crashes when objects appear in keyword/entity arrays
+const safeStr = (v: any): string => {
+    if (typeof v === 'string') return v;
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    return '';
+};
+const safeKeywords = (arr: any[]): string[] => arr.map(safeStr).filter(s => s.length > 0);
+
 export const IntelligenceFeed: React.FC = () => {
     const PAGE_SIZE = 30;
     const TV_PAGE_SIZE = 10;
@@ -283,15 +295,20 @@ export const IntelligenceFeed: React.FC = () => {
     const [totalCount, setTotalCount] = useState(0);
     const [hasMore, setHasMore] = useState(false);
     const [filter, setFilter] = useState('pending'); // pending, processed, archived, high_risk
-    const [feedTab, setFeedTab] = useState<'portais' | 'social' | 'tv' | 'radio'>('portais');
-    const SOCIAL_SOURCES = ['twitter', 'instagram', 'facebook', 'tiktok', 'x', 'Twitter', 'Instagram', 'Facebook', 'TikTok', 'X'];
+    const [feedTab, setFeedTab] = useState<'portais' | 'social' | 'tv' | 'radio' | 'whatsapp' | 'instagram' | 'tiktok'>('portais');
+    const SOCIAL_SOURCES = ['twitter', 'facebook', 'x', 'Twitter', 'Facebook', 'X'];
     const TV_SOURCE_TYPES = ['tv'];
     const RADIO_SOURCE_TYPES = ['radio'];
+    const WHATSAPP_SOURCE_TYPES = ['whatsapp'];
+    const INSTAGRAM_SOURCE_TYPES = ['instagram', 'Instagram'];
+    const TIKTOK_SOURCE_TYPES = ['tiktok', 'TikTok'];
     const [selectedMention, setSelectedMention] = useState<Mention | null>(null);
     const [mediaPanelTab, setMediaPanelTab] = useState<'transcript' | 'media'>('media');
     const [clipStart, setClipStart] = useState('');
     const [clipEnd, setClipEnd] = useState('');
     const videoRef = useRef<HTMLVideoElement>(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [transcriptOpen, setTranscriptOpen] = useState(false);
     const [isEscalationModalOpen, setIsEscalationModalOpen] = useState(false);
     const [entityMap, setEntityMap] = useState<Record<string, string>>({});
     const [keywordFilter, setKeywordFilter] = useState('');
@@ -306,7 +323,7 @@ export const IntelligenceFeed: React.FC = () => {
         const now = new Date();
         const h24 = 24 * 60 * 60 * 1000;
         mentions.forEach(m => {
-            const kws = m.classification_metadata?.keywords || [];
+            const kws = safeKeywords(m.classification_metadata?.keywords || []);
             const isRecent = (now.getTime() - new Date(m.created_at).getTime()) < h24;
             const isOlder = (now.getTime() - new Date(m.created_at).getTime()) >= h24 && (now.getTime() - new Date(m.created_at).getTime()) < h24 * 2;
             kws.forEach(kw => {
@@ -468,12 +485,18 @@ export const IntelligenceFeed: React.FC = () => {
             query = query.in('source_type', TV_SOURCE_TYPES);
         } else if (feedTab === 'radio') {
             query = query.in('source_type', RADIO_SOURCE_TYPES);
+        } else if (feedTab === 'whatsapp') {
+            query = query.in('source_type', WHATSAPP_SOURCE_TYPES);
+        } else if (feedTab === 'instagram') {
+            query = query.or('source.in.(instagram,Instagram),source_type.in.(instagram,Instagram)');
+        } else if (feedTab === 'tiktok') {
+            query = query.or('source.in.(tiktok,TikTok),source_type.in.(tiktok,TikTok)');
         } else {
-            // Portais: everything that is NOT social media, TV or radio
-            for (const s of SOCIAL_SOURCES) {
+            // Portais: everything that is NOT social media, TV, radio, whatsapp, instagram or tiktok
+            for (const s of [...SOCIAL_SOURCES, ...INSTAGRAM_SOURCE_TYPES, ...TIKTOK_SOURCE_TYPES]) {
                 query = query.neq('source', s);
             }
-            query = query.not('source_type', 'in', '(tv,radio)');
+            query = query.not('source_type', 'in', '(tv,radio,whatsapp,instagram,tiktok)');
         }
 
         if (filter === 'high_risk') {
@@ -496,7 +519,7 @@ export const IntelligenceFeed: React.FC = () => {
             // Entity/keyword filter for TV/Radio: only show items matching activation's people + keywords
             if ((feedTab === 'tv' || feedTab === 'radio') && activations.length > 0) {
                 const allPeople = activations.flatMap(a => (a.people_of_interest || []).map(p => p.toLowerCase().trim()));
-                const allKeywords = activations.flatMap(a => (a.keywords || []).map(k => k.toLowerCase().trim()));
+                const allKeywords = activations.flatMap(a => safeKeywords(a.keywords || []).map(k => k.toLowerCase().trim()));
                 const searchTerms = [...new Set([...allPeople, ...allKeywords])];
 
                 if (searchTerms.length > 0) {
@@ -505,7 +528,7 @@ export const IntelligenceFeed: React.FC = () => {
                         // Build searchable text from all relevant fields
                         const entities = (cm.detected_entities || []).map(e => e.toLowerCase());
                         const peaEntities = (cm.per_entity_analysis || []).map((ea: any) => (ea.entity || ea.entity_name || '').toLowerCase());
-                        const itemKeywords = (cm.keywords || []).map(k => k.toLowerCase());
+                        const itemKeywords = safeKeywords(cm.keywords || []).map(k => k.toLowerCase());
                         const titleLower = (m.title || '').toLowerCase();
                         const contentLower = (m.content || m.summary || '').toLowerCase();
 
@@ -622,6 +645,36 @@ export const IntelligenceFeed: React.FC = () => {
                     >
                         <Radio className="w-4 h-4" />
                         Rádio
+                    </button>
+                    <button
+                        onClick={() => { setFeedTab('whatsapp'); setKeywordFilter(''); }}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'whatsapp'
+                            ? 'text-green-400 border-green-400 bg-green-500/5'
+                            : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
+                            }`}
+                    >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                    </button>
+                    <button
+                        onClick={() => { setFeedTab('instagram'); setKeywordFilter(''); }}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'instagram'
+                            ? 'text-fuchsia-400 border-fuchsia-400 bg-fuchsia-500/5'
+                            : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
+                            }`}
+                    >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+                        Instagram
+                    </button>
+                    <button
+                        onClick={() => { setFeedTab('tiktok'); setKeywordFilter(''); }}
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'tiktok'
+                            ? 'text-cyan-400 border-cyan-400 bg-cyan-500/5'
+                            : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
+                            }`}
+                    >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" /></svg>
+                        TikTok
                     </button>
                 </div>
 
@@ -755,7 +808,7 @@ export const IntelligenceFeed: React.FC = () => {
                                 (m.content || m.text || '').toLowerCase().includes(q) ||
                                 (m.summary || '').toLowerCase().includes(q) ||
                                 (m.source || '').toLowerCase().includes(q) ||
-                                (m.classification_metadata?.keywords || []).some((kw: string) => kw.toLowerCase().includes(q))
+                                safeKeywords(m.classification_metadata?.keywords || []).some((kw: string) => kw.toLowerCase().includes(q))
                             );
                         })
                         .filter(m => {
@@ -921,7 +974,7 @@ export const IntelligenceFeed: React.FC = () => {
                                                 )}
 
                                                 {/* Keyword badges — shared keywords highlighted in amber */}
-                                                {mention.classification_metadata?.keywords?.slice(0, 5).map((kw: string) => {
+                                                {safeKeywords(mention.classification_metadata?.keywords || []).slice(0, 5).map((kw: string) => {
                                                     const shared = isSharedKeyword(kw);
                                                     const isFiltered = keywordFilter.toLowerCase() === kw.toLowerCase();
                                                     return (
@@ -1007,24 +1060,181 @@ export const IntelligenceFeed: React.FC = () => {
                 <div className="absolute inset-0 right-[450px] z-20 flex items-center justify-center p-8 pointer-events-none">
                     <div className={`w-full max-w-[720px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-slate-700/50 pointer-events-auto bg-slate-900 ${feedTab === 'tv' ? 'max-h-[90vh] overflow-y-auto scrollbar-thin' : ''}`}>
 
-                        {/* ── RADIO: compact audio bar ── */}
+                        {/* ── RADIO: Full media panel with timeline ── */}
                         {feedTab === 'radio' && (() => {
-                            const assets = selectedMention.classification_metadata?.assets || [];
-                            const postId = selectedMention.classification_metadata?.elege_post_id;
+                            const cm = selectedMention.classification_metadata || {} as any;
+                            const assets = cm.assets || [];
+                            const postId = cm.elege_post_id;
                             const mediaAsset = assets.find((a: any) => a.kind === 'audio' || (a.media_type && a.media_type.startsWith('audio'))) || assets[0];
+                            const timelineMarks: { position: number; sentiment: string; frameId: number }[] = cm.timeline_marks || [];
+                            const maxPosition = cm.video_duration || cm.audio_duration || (timelineMarks.length > 0 ? Math.max(...timelineMarks.map((m: any) => m.position)) : 300);
+                            const transcript = selectedMention.content || selectedMention.summary || '';
+                            const sentences = transcript.split(/[.!?]\s+/).filter((s: string) => s.trim().length > 5);
+
                             return (
-                                <div className="p-4 bg-gradient-to-r from-teal-950/40 via-slate-900 to-slate-900 border-b border-slate-800">
-                                    {mediaAsset && postId ? (
-                                        <audio controls autoPlay preload="auto" className="w-full h-10" style={{ borderRadius: '8px' }}>
-                                            <source src={`/api/elege/assets/${postId}/${mediaAsset.id}`} />
-                                        </audio>
-                                    ) : (
-                                        <div className="flex items-center gap-3 py-2 text-slate-500">
-                                            <Radio className="w-5 h-5 text-teal-500" />
-                                            <span className="text-sm">Áudio não disponível</span>
+                                <>
+                                    {/* Audio Player */}
+                                    <div className="p-4 bg-gradient-to-r from-teal-950/40 via-slate-900 to-slate-900 border-b border-slate-800">
+                                        {mediaAsset && postId ? (
+                                            <audio ref={audioRef} controls autoPlay preload="auto" className="w-full h-10" style={{ borderRadius: '8px' }}>
+                                                <source src={`/api/elege/assets/${postId}/${mediaAsset.id}`} />
+                                            </audio>
+                                        ) : (
+                                            <div className="flex items-center gap-3 py-2 text-slate-500">
+                                                <Radio className="w-5 h-5 text-teal-500" />
+                                                <span className="text-sm">Áudio não disponível</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Sentiment Timeline */}
+                                    {timelineMarks.length > 0 && (
+                                        <div className="px-4 py-2 bg-slate-950 border-t border-b border-slate-800">
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Timeline de Citações</span>
+                                                <div className="flex items-center gap-2 ml-auto text-[9px] text-slate-600">
+                                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Positivo</span>
+                                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Negativo</span>
+                                                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-500" /> Neutro</span>
+                                                </div>
+                                            </div>
+                                            <div className="relative w-full h-5 bg-slate-800/80 rounded-full overflow-visible">
+                                                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-900/30 to-slate-700" />
+                                                {timelineMarks.map((mark: any, idx: number) => {
+                                                    const pct = maxPosition > 0 ? (mark.position / maxPosition) * 100 : 0;
+                                                    const color = mark.sentiment === 'positive' ? 'bg-emerald-400 shadow-emerald-400/50' :
+                                                        mark.sentiment === 'negative' ? 'bg-red-400 shadow-red-400/50' : 'bg-slate-500';
+                                                    return (
+                                                        <button
+                                                            key={idx}
+                                                            className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ${color} shadow-md hover:scale-150 transition-transform cursor-pointer z-10 border border-white/20`}
+                                                            style={{ left: `${pct}%` }}
+                                                            title={`${mark.position}s — ${mark.sentiment}`}
+                                                            onClick={() => {
+                                                                if (audioRef.current) {
+                                                                    audioRef.current.currentTime = mark.position;
+                                                                    audioRef.current.play();
+                                                                }
+                                                                const mins = Math.floor(mark.position / 60);
+                                                                const secs = Math.floor(mark.position % 60);
+                                                                setClipStart(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+                                                <span>0:00</span>
+                                                <span>{Math.floor(maxPosition / 60)}:{String(maxPosition % 60).padStart(2, '0')}</span>
+                                            </div>
                                         </div>
                                     )}
-                                </div>
+
+                                    {/* Clip Controls + Download */}
+                                    {mediaAsset && postId && (
+                                        <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center gap-3">
+                                            <Scissors className="w-4 h-4 text-slate-500 shrink-0" />
+                                            <div className="flex items-center gap-1.5">
+                                                <input
+                                                    type="text"
+                                                    value={clipStart}
+                                                    onChange={e => setClipStart(e.target.value)}
+                                                    placeholder="00:00"
+                                                    className="w-16 text-xs text-center bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                                />
+                                                <span className="text-slate-600 text-xs">→</span>
+                                                <input
+                                                    type="text"
+                                                    value={clipEnd}
+                                                    onChange={e => setClipEnd(e.target.value)}
+                                                    placeholder={maxPosition > 0 ? `${Math.floor(maxPosition / 60)}:${String(maxPosition % 60).padStart(2, '0')}` : '05:00'}
+                                                    className="w-16 text-xs text-center bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-white placeholder-slate-600 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                                />
+                                            </div>
+                                            <button
+                                                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/20 border border-teal-500/30 text-teal-400 text-xs font-medium hover:bg-teal-500/30 transition-colors"
+                                                onClick={() => {
+                                                    if (!mediaAsset || !postId) return;
+                                                    const parseTime = (t: string): number | null => {
+                                                        if (!t.trim()) return null;
+                                                        const parts = t.split(':').map(Number);
+                                                        if (parts.length === 2) return parts[0] * 60 + parts[1];
+                                                        if (parts.length === 1 && !isNaN(parts[0])) return parts[0];
+                                                        return null;
+                                                    };
+                                                    const startSec = parseTime(clipStart);
+                                                    const endSec = parseTime(clipEnd);
+                                                    let url = `/api/elege/assets/${postId}/${mediaAsset.id}`;
+                                                    const params: string[] = [];
+                                                    if (startSec !== null) params.push(`start=${startSec}`);
+                                                    if (endSec !== null) params.push(`end=${endSec}`);
+                                                    if (params.length > 0) url += `?${params.join('&')}`;
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = `${(selectedMention.title || 'audio').replace(/[^a-zA-Z0-9]/g, '_')}${startSec !== null ? `_${clipStart.replace(':', 'm')}s` : ''}.mp3`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                }}
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                {clipStart || clipEnd ? 'Baixar Corte' : 'Baixar Áudio'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Transcrição — Accordion */}
+                                    <div className="border-t border-slate-800">
+                                        <button
+                                            onClick={() => setTranscriptOpen(!transcriptOpen)}
+                                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="w-3.5 h-3.5 text-teal-400" />
+                                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Transcrição ({sentences.length} frases)</span>
+                                            </div>
+                                            <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${transcriptOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        {transcriptOpen && (
+                                            <div className="px-4 pb-4 space-y-3 max-h-[300px] overflow-y-auto scrollbar-thin">
+                                                {/* Header: vehicle + date + title */}
+                                                <div className="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-1">
+                                                    <div className="flex items-center gap-2 text-[10px] text-teal-400 font-bold uppercase">
+                                                        <Radio className="w-3 h-3" />
+                                                        {selectedMention.source || 'Rádio'}
+                                                    </div>
+                                                    <p className="text-xs font-medium text-white truncate">{selectedMention.title || 'Sem título'}</p>
+                                                    <p className="text-[10px] text-slate-500">{new Date(selectedMention.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                                </div>
+                                                <div className="flex items-center justify-end">
+                                                    <button
+                                                        className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:text-white transition-colors"
+                                                        onClick={() => {
+                                                            const blob = new Blob([`${selectedMention.source || 'Rádio'} — ${selectedMention.title || 'Sem título'}\n${new Date(selectedMention.created_at).toLocaleDateString('pt-BR')}\n\n${transcript}`], { type: 'text/plain' });
+                                                            const url = URL.createObjectURL(blob);
+                                                            const a = document.createElement('a');
+                                                            a.href = url;
+                                                            a.download = `${(selectedMention.title || 'transcricao').replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+                                                            document.body.appendChild(a);
+                                                            a.click();
+                                                            document.body.removeChild(a);
+                                                            URL.revokeObjectURL(url);
+                                                        }}
+                                                    >
+                                                        <Download className="w-3 h-3" /> Baixar .txt
+                                                    </button>
+                                                </div>
+                                                {sentences.length > 0 ? sentences.map((sentence: string, idx: number) => (
+                                                    <p key={idx} className="text-xs text-slate-300 leading-relaxed pl-3 border-l-2 border-teal-800/50 hover:border-teal-500/50 transition-colors">
+                                                        {sentence.trim()}
+                                                    </p>
+                                                )) : (
+                                                    <p className="text-sm text-slate-500 py-4 text-center">Transcrição não disponível</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
                             );
                         })()}
 
@@ -1229,33 +1439,46 @@ export const IntelligenceFeed: React.FC = () => {
                                     )}
 
                                     {mediaPanelTab === 'transcript' && (
-                                        <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto scrollbar-thin">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Transcrição ({sentences.length} frases)</span>
-                                                <button
-                                                    className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:text-white transition-colors"
-                                                    onClick={() => {
-                                                        const blob = new Blob([transcript], { type: 'text/plain' });
-                                                        const url = URL.createObjectURL(blob);
-                                                        const a = document.createElement('a');
-                                                        a.href = url;
-                                                        a.download = `${(selectedMention.title || 'transcript').replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
-                                                        document.body.appendChild(a);
-                                                        a.click();
-                                                        document.body.removeChild(a);
-                                                        URL.revokeObjectURL(url);
-                                                    }}
-                                                >
-                                                    <Download className="w-3 h-3" /> Baixar .txt
-                                                </button>
+                                        <div className="border-t border-slate-800">
+                                            {/* Header: vehicle + date + title */}
+                                            <div className="p-4 pb-2">
+                                                <div className="p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-1">
+                                                    <div className="flex items-center gap-2 text-[10px] text-amber-400 font-bold uppercase">
+                                                        <Tv className="w-3 h-3" />
+                                                        {selectedMention.source || 'TV'}
+                                                    </div>
+                                                    <p className="text-xs font-medium text-white truncate">{selectedMention.title || 'Sem título'}</p>
+                                                    <p className="text-[10px] text-slate-500">{new Date(selectedMention.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                                </div>
                                             </div>
-                                            {sentences.length > 0 ? sentences.map((sentence: string, idx: number) => (
-                                                <p key={idx} className="text-xs text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-800 hover:border-primary/50 transition-colors">
-                                                    {sentence.trim()}
-                                                </p>
-                                            )) : (
-                                                <p className="text-sm text-slate-500 py-4 text-center">Transcrição não disponível</p>
-                                            )}
+                                            <div className="px-4 pb-4 space-y-3 max-h-[300px] overflow-y-auto scrollbar-thin">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Transcrição ({sentences.length} frases)</span>
+                                                    <button
+                                                        className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[10px] text-slate-400 hover:text-white transition-colors"
+                                                        onClick={() => {
+                                                            const blob = new Blob([`${selectedMention.source || 'TV'} — ${selectedMention.title || 'Sem título'}\n${new Date(selectedMention.created_at).toLocaleDateString('pt-BR')}\n\n${transcript}`], { type: 'text/plain' });
+                                                            const url = URL.createObjectURL(blob);
+                                                            const a = document.createElement('a');
+                                                            a.href = url;
+                                                            a.download = `${(selectedMention.title || 'transcript').replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+                                                            document.body.appendChild(a);
+                                                            a.click();
+                                                            document.body.removeChild(a);
+                                                            URL.revokeObjectURL(url);
+                                                        }}
+                                                    >
+                                                        <Download className="w-3 h-3" /> Baixar .txt
+                                                    </button>
+                                                </div>
+                                                {sentences.length > 0 ? sentences.map((sentence: string, idx: number) => (
+                                                    <p key={idx} className="text-xs text-slate-300 leading-relaxed pl-3 border-l-2 border-slate-800 hover:border-primary/50 transition-colors">
+                                                        {sentence.trim()}
+                                                    </p>
+                                                )) : (
+                                                    <p className="text-sm text-slate-500 py-4 text-center">Transcrição não disponível</p>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </>
@@ -1356,7 +1579,7 @@ export const IntelligenceFeed: React.FC = () => {
                                 {selectedMention.classification_metadata?.keywords && selectedMention.classification_metadata.keywords.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-1">
                                         {selectedMention.classification_metadata.keywords.slice(0, 4).map((kw, i) => (
-                                            <span key={i} className="text-sky-400 text-[14px]">#{kw}</span>
+                                            <span key={i} className="text-sky-400 text-[14px]">#{safeStr(kw)}</span>
                                         ))}
                                     </div>
                                 )}
@@ -1403,6 +1626,189 @@ export const IntelligenceFeed: React.FC = () => {
 
                             {/* Sentiment indicator bar at bottom */}
                             <div className={`h-1 w-full ${selectedMention.sentiment === 'negative' ? 'bg-red-500' : selectedMention.sentiment === 'positive' ? 'bg-emerald-500' : 'bg-slate-600'}`} />
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Floating Instagram Card */}
+            {selectedMention && feedTab === 'instagram' && (() => {
+                const meta = selectedMention.classification_metadata || {} as any;
+                const assets = meta.assets || [];
+                const postId = meta.elege_post_id;
+                const imageAsset = assets.find((a: any) => a.kind === 'image' || (a.media_type && a.media_type.startsWith('image')));
+                const videoAsset = assets.find((a: any) => a.kind === 'video' || (a.media_type && a.media_type.startsWith('video')));
+                const entities = meta.detected_entities || [];
+                const likes = meta.engagement?.likes || meta.like_count || 0;
+                const comments = meta.engagement?.comments || meta.comment_count || 0;
+                const caption = selectedMention.text || selectedMention.content || selectedMention.summary || '';
+                const username = meta.author_username || meta.source_name || selectedMention.source || 'instagram_user';
+                const hashtags = safeKeywords(selectedMention.classification_metadata?.keywords || []).filter((k: string) => k.startsWith('#') || !k.includes(' ')).slice(0, 6);
+
+                return (
+                    <div className="absolute inset-0 right-[450px] z-20 flex items-center justify-center p-8 pointer-events-none">
+                        <div className="w-full max-w-[420px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-slate-700/50 pointer-events-auto bg-slate-900">
+                            {/* Instagram header */}
+                            <div className="p-3 flex items-center gap-3 border-b border-slate-800 bg-gradient-to-r from-fuchsia-950/30 via-slate-900 to-purple-950/30">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 p-[2px]">
+                                    <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-bold text-white">
+                                        {username.slice(0, 2).toUpperCase()}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-white">{username}</p>
+                                    <p className="text-[10px] text-slate-500">Instagram</p>
+                                </div>
+                                <svg className="w-5 h-5 ml-auto text-fuchsia-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+                            </div>
+
+                            {/* Media */}
+                            <div className="relative w-full aspect-square bg-black flex items-center justify-center">
+                                {videoAsset && postId ? (
+                                    <video controls preload="metadata" className="w-full h-full object-cover">
+                                        <source src={`/api/elege/assets/${postId}/${videoAsset.id}`} />
+                                    </video>
+                                ) : imageAsset && postId ? (
+                                    <img src={`/api/elege/assets/${postId}/${imageAsset.id}`} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-slate-500">
+                                        <Image className="w-10 h-10" />
+                                        <span className="text-sm">Mídia não disponível</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Engagement */}
+                            <div className="px-4 py-2 flex items-center gap-4">
+                                <button className="p-1 hover:text-red-400 text-slate-400 transition-colors"><Heart className="w-5 h-5" /></button>
+                                <button className="p-1 hover:text-sky-400 text-slate-400 transition-colors"><MessageCircle className="w-5 h-5" /></button>
+                                <button className="p-1 hover:text-sky-400 text-slate-400 transition-colors ml-auto"><Share2 className="w-5 h-5" /></button>
+                            </div>
+
+                            {/* Likes */}
+                            <div className="px-4 pb-1">
+                                <p className="text-xs font-bold text-white">{likes.toLocaleString('pt-BR')} curtidas</p>
+                            </div>
+
+                            {/* Caption */}
+                            <div className="px-4 pb-2">
+                                <p className="text-xs text-slate-300 leading-relaxed line-clamp-3">
+                                    <span className="font-bold text-white mr-1">{username}</span>
+                                    {caption.substring(0, 200)}
+                                </p>
+                            </div>
+
+                            {/* Hashtags */}
+                            {hashtags.length > 0 && (
+                                <div className="px-4 pb-2 flex flex-wrap gap-1">
+                                    {hashtags.map((h: string) => (
+                                        <span key={h} className="text-[10px] text-fuchsia-400 font-medium">#{h.replace('#', '')}</span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Entities */}
+                            {entities.length > 0 && (
+                                <div className="px-4 pb-2 flex flex-wrap gap-1">
+                                    {entities.map((e: string) => entityMap[e] && (
+                                        <span key={e} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
+                                            <BrainCircuit className="w-3 h-3" />{entityMap[e]}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Comments count */}
+                            <div className="px-4 pb-2">
+                                <p className="text-[11px] text-slate-500">{comments > 0 ? `Ver todos os ${comments} comentários` : 'Sem comentários'}</p>
+                            </div>
+
+                            {/* Timestamp */}
+                            <div className="px-4 pb-3">
+                                <p className="text-[10px] text-slate-600 uppercase">{formatDistanceToNow(new Date(selectedMention.created_at), { addSuffix: true, locale: ptBR })}</p>
+                            </div>
+
+                            {/* Sentiment bar */}
+                            <div className={`h-1 w-full ${selectedMention.sentiment === 'negative' ? 'bg-red-500' : selectedMention.sentiment === 'positive' ? 'bg-emerald-500' : 'bg-slate-600'}`} />
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Floating TikTok Card */}
+            {selectedMention && feedTab === 'tiktok' && (() => {
+                const meta = selectedMention.classification_metadata || {} as any;
+                const assets = meta.assets || [];
+                const postId = meta.elege_post_id;
+                const videoAsset = assets.find((a: any) => a.kind === 'video' || (a.media_type && a.media_type.startsWith('video')));
+                const imageAsset = assets.find((a: any) => a.kind === 'image' || (a.media_type && a.media_type.startsWith('image')));
+                const entities = meta.detected_entities || [];
+                const likes = meta.engagement?.likes || meta.like_count || 0;
+                const comments = meta.engagement?.comments || meta.comment_count || 0;
+                const shares = meta.engagement?.shares || meta.share_count || 0;
+                const views = meta.engagement?.views || meta.view_count || 0;
+                const caption = selectedMention.text || selectedMention.content || selectedMention.summary || '';
+                const username = meta.author_username || meta.source_name || selectedMention.source || 'tiktok_user';
+                const soundName = meta.sound_name || 'som original';
+
+                return (
+                    <div className="absolute inset-0 right-[450px] z-20 flex items-center justify-center p-8 pointer-events-none">
+                        <div className="w-full max-w-[380px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-slate-700/50 pointer-events-auto bg-slate-900">
+                            {/* TikTok header */}
+                            <div className="p-3 flex items-center gap-3 border-b border-slate-800 bg-gradient-to-r from-cyan-950/30 via-slate-900 to-pink-950/20">
+                                <svg className="w-5 h-5 text-cyan-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" /></svg>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-white truncate">@{username}</p>
+                                </div>
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-400">TikTok</span>
+                            </div>
+
+                            {/* Video / Media */}
+                            <div className="relative w-full aspect-[9/16] max-h-[400px] bg-black flex items-center justify-center">
+                                {videoAsset && postId ? (
+                                    <video controls preload="metadata" className="w-full h-full object-cover">
+                                        <source src={`/api/elege/assets/${postId}/${videoAsset.id}`} />
+                                    </video>
+                                ) : imageAsset && postId ? (
+                                    <img src={`/api/elege/assets/${postId}/${imageAsset.id}`} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-slate-500">
+                                        <Play className="w-10 h-10" />
+                                        <span className="text-sm">Vídeo não disponível</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Caption + Sound */}
+                            <div className="p-4 space-y-2">
+                                <p className="text-xs text-slate-300 leading-relaxed line-clamp-3">{caption.substring(0, 200)}</p>
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                    <span>♬</span>
+                                    <span className="truncate">{soundName}</span>
+                                </div>
+                            </div>
+
+                            {/* Entities */}
+                            {entities.length > 0 && (
+                                <div className="px-4 pb-2 flex flex-wrap gap-1">
+                                    {entities.map((e: string) => entityMap[e] && (
+                                        <span key={e} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
+                                            <BrainCircuit className="w-3 h-3" />{entityMap[e]}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Engagement */}
+                            <div className="px-4 pb-3 flex items-center gap-4 text-[11px] text-slate-400">
+                                <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {likes.toLocaleString('pt-BR')}</span>
+                                <span className="flex items-center gap-1"><MessageCircle className="w-3.5 h-3.5" /> {comments.toLocaleString('pt-BR')}</span>
+                                <span className="flex items-center gap-1"><Share2 className="w-3.5 h-3.5" /> {shares.toLocaleString('pt-BR')}</span>
+                                {views > 0 && <span className="flex items-center gap-1 ml-auto"><Eye className="w-3.5 h-3.5" /> {views.toLocaleString('pt-BR')}</span>}
+                            </div>
+
+                            {/* Accent bar */}
+                            <div className="h-1 w-full bg-gradient-to-r from-cyan-500 via-pink-500 to-cyan-500" />
                         </div>
                     </div>
                 );
@@ -1660,7 +2066,7 @@ export const IntelligenceFeed: React.FC = () => {
                                     Análise de Palavras-Chave
                                 </h3>
                                 <div className="space-y-2">
-                                    {selectedMention.classification_metadata.keywords.slice(0, 5).map((kw, idx) => (
+                                    {safeKeywords(selectedMention.classification_metadata.keywords).slice(0, 5).map((kw, idx) => (
                                         <KeywordAnalysis
                                             key={idx}
                                             keyword={kw}
