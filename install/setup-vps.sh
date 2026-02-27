@@ -39,7 +39,7 @@ DEPLOY_USER="deploy"
 INSTALL_DIR="/opt/warroom"
 SWAP_SIZE="2G"
 NODE_VERSION="20"
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # ── Colors ──
 RED='\033[0;31m'
