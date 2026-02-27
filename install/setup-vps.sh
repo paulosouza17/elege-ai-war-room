@@ -39,7 +39,8 @@ DEPLOY_USER="deploy"
 INSTALL_DIR="/opt/warroom"
 SWAP_SIZE="2G"
 NODE_VERSION="20"
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # ── Colors ──
 RED='\033[0;31m'
@@ -364,15 +365,19 @@ setup_project_dir() {
             cp -r "$REPO_DIR/backend" "$INSTALL_DIR/"
             cp -r "$REPO_DIR/web" "$INSTALL_DIR/"
             cp -r "$REPO_DIR/migrations" "$INSTALL_DIR/" 2>/dev/null || true
-            cp -r "$REPO_DIR/nginx" "$INSTALL_DIR/" 2>/dev/null || true
             cp "$REPO_DIR/package.json" "$INSTALL_DIR/" 2>/dev/null || true
             cp "$REPO_DIR/package-lock.json" "$INSTALL_DIR/" 2>/dev/null || true
-            cp "$REPO_DIR/docker-compose.yml" "$INSTALL_DIR/" 2>/dev/null || true
+        fi
+
+        # Ensure nginx config is at the expected flat location
+        if [[ -f "$SCRIPT_DIR/nginx/warroom.conf" ]]; then
+            mkdir -p "$INSTALL_DIR/nginx"
+            cp "$SCRIPT_DIR/nginx/warroom.conf" "$INSTALL_DIR/nginx/warroom.conf"
         fi
 
         log "Project files copied to $INSTALL_DIR"
     else
-        warn "No backend/ directory found in $(pwd)."
+        warn "No backend/ directory found in $REPO_DIR."
         warn "You need to manually clone/copy the project to $INSTALL_DIR"
     fi
 
@@ -495,9 +500,17 @@ configure_nginx() {
 
     local nginx_conf="/etc/nginx/sites-available/warroom"
 
+    # Check both flat (/opt/warroom/nginx/) and nested (/opt/warroom/install/nginx/) locations
+    local nginx_template=""
     if [[ -f "$INSTALL_DIR/nginx/warroom.conf" ]]; then
+        nginx_template="$INSTALL_DIR/nginx/warroom.conf"
+    elif [[ -f "$INSTALL_DIR/install/nginx/warroom.conf" ]]; then
+        nginx_template="$INSTALL_DIR/install/nginx/warroom.conf"
+    fi
+
+    if [[ -n "$nginx_template" ]]; then
         # Copy template and replace domain placeholder
-        cp "$INSTALL_DIR/nginx/warroom.conf" "$nginx_conf"
+        cp "$nginx_template" "$nginx_conf"
 
         if [[ "$DOMAIN" != "_" ]]; then
             sed -i "s/YOUR_DOMAIN\.com/$DOMAIN/g" "$nginx_conf"
