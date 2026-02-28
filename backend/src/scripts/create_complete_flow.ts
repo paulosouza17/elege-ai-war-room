@@ -52,7 +52,7 @@ async function createCompleteFlow() {
 
     // 4. Build the complete flow
     const NEWS_API = 'http://localhost:8001';
-    const PEOPLE_API = 'http://10.144.103.1:8011/api/v1';
+    const PEOPLE_API = process.env.ELEGE_PEOPLE_API_URL || 'http://app.elege.ai:8011/api/v1';
 
     const nodes = [
         // TRIGGER — Activation event

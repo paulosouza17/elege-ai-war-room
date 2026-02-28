@@ -140,7 +140,7 @@ export class TriggerHandler implements NodeHandler {
             // Fetch Elege.AI token from data_sources (admin-managed via Settings > Integrations)
             // Fetch Elege.AI token config from data_sources (admin-managed via Settings > Integrations)
             let elegeApiToken = '';
-            let elegeBaseUrl = 'http://10.144.103.1:3001'; // Default fallback
+            let elegeBaseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
 
             try {
                 const { data: elegeSource } = await supabase
@@ -254,7 +254,7 @@ export class TriggerHandler implements NodeHandler {
             }
 
             let elegeApiToken = '';
-            let elegeBaseUrl = 'http://10.144.103.1:3001';
+            let elegeBaseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
 
             try {
                 const { data: elegeSource } = await supabase
@@ -330,7 +330,7 @@ export class TriggerHandler implements NodeHandler {
         }
 
         let elegeApiToken = '';
-        let elegeBaseUrl = 'http://10.144.103.1:3001';
+        let elegeBaseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
 
         try {
             const { data: elegeSource } = await supabase

@@ -36,7 +36,7 @@ async function validateElegeRoutes() {
 
     // Fallback to what we know is probably in the .env or hardcoded
     if (!baseUrl || !apiToken) {
-        baseUrl = process.env.ELEGE_BASE_URL || 'http://10.144.103.1:3001';
+        baseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
         apiToken = process.env.ELEGE_API_TOKEN || process.env.ELEGEAI_API_TOKEN || 'Ihbtdf46424';
         console.log('⚠️ Usando configuração de fallback (Hardcoded / ENV).');
     }

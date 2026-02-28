@@ -45,7 +45,7 @@ export class WhatsAppHandler implements NodeHandler {
 
         return {
             token: ds?.credentials?.api_token || process.env.ELEGEAI_API_TOKEN || '',
-            baseUrl: ds?.credentials?.base_url || 'http://10.144.103.1:3001',
+            baseUrl: ds?.credentials?.base_url || process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001',
         };
     }
 

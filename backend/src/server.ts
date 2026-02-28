@@ -52,7 +52,7 @@ app.get('/api/elege/assets/:postId/:assetId', async (req, res) => {
         ).from('data_sources').select('credentials').eq('type', 'elegeai').limit(1).single();
 
         const token = ds?.credentials?.api_token || process.env.ELEGEAI_API_TOKEN || '';
-        const baseUrl = ds?.credentials?.base_url || 'http://10.144.103.1:3001';
+        const baseUrl = ds?.credentials?.base_url || process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
 
         const downloadUrl = `${baseUrl}/api/posts/${postId}/assets/${assetId}/download`;
         const upstream = await fetch(downloadUrl, {

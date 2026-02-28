@@ -4,7 +4,7 @@ export class ElegeSyncService {
     private supabase: SupabaseClient;
     private intervalId: NodeJS.Timeout | null = null;
     private isRunning: boolean = false;
-    private apiBaseUrl: string = 'http://10.144.103.1:3001/api';
+    private apiBaseUrl: string = (process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001') + '/api';
     private apiKey: string;
     private SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
