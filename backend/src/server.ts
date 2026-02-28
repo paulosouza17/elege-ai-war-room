@@ -333,11 +333,17 @@ serviceRegistry.dbcleanup = {
     stop: stopDbCleanup,
 };
 
-// Boot services
-startScheduler();
-startWatchdog();
-startElegeSync();
-startDbCleanup();
+// Boot services — singleton services only run on PM2 instance 0 to avoid duplication
+const instanceId = parseInt(process.env.NODE_APP_INSTANCE || '0', 10);
+if (instanceId === 0) {
+    console.log(`[Boot] Instance ${instanceId}: Starting singleton services (scheduler, watchdog, elegesync, dbcleanup)`);
+    startScheduler();
+    startWatchdog();
+    startElegeSync();
+    startDbCleanup();
+} else {
+    console.log(`[Boot] Instance ${instanceId}: Skipping singleton services (handled by instance 0)`);
+}
 
 // ═══════════════════════════════════════════════════════════
 // ADMIN ENDPOINTS — Service Control & Health
