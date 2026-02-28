@@ -55,6 +55,7 @@ export const Dashboard: React.FC = () => {
     const [selectedWord, setSelectedWord] = useState<string | null>(null);
     const [wordFeedItems, setWordFeedItems] = useState<any[]>([]);
     const [wordFeedLoading, setWordFeedLoading] = useState(false);
+
     // Pagination states for alerts and feed
     const [alertsTotal, setAlertsTotal] = useState(0);
     const [alertsHasMore, setAlertsHasMore] = useState(false);
@@ -65,6 +66,7 @@ export const Dashboard: React.FC = () => {
     const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
     const [escalationAlert, setEscalationAlert] = useState<any | null>(null);
     const [archivingId, setArchivingId] = useState<string | null>(null);
+    const [highlightedAlert, setHighlightedAlert] = useState<any | null>(null);
     const navigate = useNavigate();
 
     const handleWordClick = useCallback(async (word: string) => {
@@ -73,10 +75,9 @@ export const Dashboard: React.FC = () => {
         try {
             const filterIds = selectedActivationId ? [selectedActivationId] : allActivationIds;
 
-            // Try exact keyword array match first (case-sensitive contains)
             let query = supabase
                 .from('intelligence_feed')
-                .select('id, text, title, summary, source, sentiment, risk_score, created_at, status, classification_metadata, keywords')
+                .select('id, text, title, summary, content, source, sentiment, risk_score, created_at, status, classification_metadata, keywords')
                 .order('created_at', { ascending: false })
                 .limit(50);
 
@@ -86,12 +87,18 @@ export const Dashboard: React.FC = () => {
                 query = query.in('activation_id', filterIds);
             }
 
-            // keywords are stored with original case, word cloud normalizes to lowercase
-            // Use ilike on the keywords column (cast as text) for case-insensitive search
-            query = query.or(`keywords.cs.{${word}},keywords.cs.{${word.charAt(0).toUpperCase() + word.slice(1)}},title.ilike.%${word}%,summary.ilike.%${word}%`);
-
+            // Fetch all recent items and filter client-side for reliable case-insensitive keyword matching
             const { data } = await query;
-            setWordFeedItems(data || []);
+            const q = word.toLowerCase();
+            const filtered = (data || []).filter((item: any) => {
+                const kws = Array.isArray(item.keywords) ? item.keywords : [];
+                if (kws.some((kw: string) => typeof kw === 'string' && kw.toLowerCase().includes(q))) return true;
+                if ((item.title || '').toLowerCase().includes(q)) return true;
+                if ((item.summary || '').toLowerCase().includes(q)) return true;
+                if ((item.content || item.text || '').toLowerCase().includes(q)) return true;
+                return false;
+            });
+            setWordFeedItems(filtered);
         } catch (err) {
             console.error('[WordFeed] Error:', err);
             setWordFeedItems([]);
@@ -219,11 +226,11 @@ export const Dashboard: React.FC = () => {
             const h48ago = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
             const { count: mentions24h } = await applyFilter(
-                supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).gte('created_at', h24ago)
+                supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).gte('created_at', h24ago).neq('status', 'archived')
             );
 
             const { count: mentionsPrev24h } = await applyFilter(
-                supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).gte('created_at', h48ago).lt('created_at', h24ago)
+                supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).gte('created_at', h48ago).lt('created_at', h24ago).neq('status', 'archived')
             );
 
             const current = mentions24h || 0;
@@ -232,7 +239,7 @@ export const Dashboard: React.FC = () => {
 
             // 3. Average risk score
             const { data: riskData } = await applyFilter(
-                supabase.from('intelligence_feed').select('risk_score').not('risk_score', 'is', null).gte('created_at', h24ago)
+                supabase.from('intelligence_feed').select('risk_score').not('risk_score', 'is', null).gte('created_at', h24ago).neq('status', 'archived')
             );
 
             const riskScores = (riskData || []).map((r: any) => r.risk_score).filter((s: any) => typeof s === 'number');
@@ -240,13 +247,13 @@ export const Dashboard: React.FC = () => {
 
             // 4. Unique sources
             const { data: sourcesData } = await applyFilter(
-                supabase.from('intelligence_feed').select('source').not('source', 'is', null).gte('created_at', h24ago)
+                supabase.from('intelligence_feed').select('source').not('source', 'is', null).gte('created_at', h24ago).neq('status', 'archived')
             );
             const uniqueSources = new Set((sourcesData || []).map((r: any) => r.source).filter(Boolean)).size;
 
             // 5. Unique entities from keywords
             const { data: kwData } = await applyFilter(
-                supabase.from('intelligence_feed').select('keywords').not('keywords', 'is', null).gte('created_at', h24ago)
+                supabase.from('intelligence_feed').select('keywords').not('keywords', 'is', null).gte('created_at', h24ago).neq('status', 'archived')
             );
             const allKws = new Set<string>();
             (kwData || []).forEach((r: any) => {
@@ -256,7 +263,7 @@ export const Dashboard: React.FC = () => {
             // 6. Sentiment counts
             const buildSentimentQuery = (sentiment: string) => {
                 return applyFilter(
-                    supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).eq('sentiment', sentiment)
+                    supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).eq('sentiment', sentiment).neq('status', 'archived')
                 );
             };
             const [{ count: p }, { count: ng }, { count: nu }] = await Promise.all([
@@ -270,7 +277,7 @@ export const Dashboard: React.FC = () => {
 
             // 7. Total mentions
             const { count: totalCount } = await applyFilter(
-                supabase.from('intelligence_feed').select('id', { count: 'exact', head: true })
+                supabase.from('intelligence_feed').select('id', { count: 'exact', head: true }).neq('status', 'archived')
             );
             const totalMentions = totalCount || 0;
 
@@ -282,18 +289,21 @@ export const Dashboard: React.FC = () => {
                     .select('id', { count: 'exact', head: true })
                     .gte('created_at', h1ago)
                     .in('source', socialSources)
+                    .neq('status', 'archived')
             );
 
             // 8. Alerts (with count)
             const { data: recentAlerts, count: alertsCount } = await applyFilter(
                 supabase.from('intelligence_feed').select('*', { count: 'exact' })
-                    .or('risk_score.gte.70,and(sentiment.eq.negative,risk_score.gte.50)')
+                    .or('risk_score.gte.80,and(sentiment.eq.negative,risk_score.gte.60)')
+                    .neq('status', 'archived')
                     .order('created_at', { ascending: false }).range(0, ALERTS_PAGE_SIZE - 1)
             );
 
             // 9. Recent feed (with count)
             const { data: recentFeed, count: feedCount } = await applyFilter(
                 supabase.from('intelligence_feed').select('*', { count: 'exact' })
+                    .neq('status', 'archived')
                     .order('created_at', { ascending: false }).range(0, FEED_PAGE_SIZE - 1)
             );
 
@@ -350,7 +360,8 @@ export const Dashboard: React.FC = () => {
         const to = from + ALERTS_PAGE_SIZE - 1;
         const { data } = await applyFilter(
             supabase.from('intelligence_feed').select('*')
-                .or('risk_score.gte.70,and(sentiment.eq.negative,risk_score.gte.50)')
+                .or('risk_score.gte.80,and(sentiment.eq.negative,risk_score.gte.60)')
+                .neq('status', 'archived')
                 .order('created_at', { ascending: false }).range(from, to)
         );
         const newAlerts = data || [];
@@ -707,9 +718,31 @@ export const Dashboard: React.FC = () => {
                                     <Badge variant="danger" className="ml-2">{s.recent_alerts.length}</Badge>
                                 )}
                             </CardTitle>
-                            <span className="text-[10px] text-slate-600">
-                                Critério: risk ≥ 70 ou negativo ≥ 50
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] text-slate-600">
+                                    Critério: risk ≥ 80 ou negativo ≥ 60
+                                </span>
+                                {s.recent_alerts.length > 0 && (
+                                    <button
+                                        onClick={async () => {
+                                            const ids = s.recent_alerts.map((a: any) => a.id);
+                                            const { error } = await supabase.from('intelligence_feed').update({ status: 'archived' }).in('id', ids);
+                                            if (error) {
+                                                console.error('[Limpar Todos] Archive failed:', error);
+                                                alert(`Erro ao arquivar alertas: ${error.message}`);
+                                                return;
+                                            }
+                                            setStats(prev => prev ? { ...prev, recent_alerts: [] } : prev);
+                                            setHighlightedAlert(null);
+                                            setExpandedAlertId(null);
+                                        }}
+                                        className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all"
+                                    >
+                                        <X className="w-3 h-3" />
+                                        Limpar Todos
+                                    </button>
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent className="p-0">
                             {s.recent_alerts.length === 0 ? (
@@ -809,30 +842,38 @@ export const Dashboard: React.FC = () => {
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        navigate('/feed');
+                                                                        setHighlightedAlert(highlightedAlert?.id === alert.id ? null : alert);
+                                                                        setExpandedAlertId(null);
                                                                     }}
-                                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all"
+                                                                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${highlightedAlert?.id === alert.id ? 'text-sky-300 bg-sky-500/20 border border-sky-500/30' : 'text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700'}`}
                                                                 >
                                                                     <Eye className="w-3.5 h-3.5" />
-                                                                    Ver no Feed
+                                                                    {highlightedAlert?.id === alert.id ? 'Ocultar Detalhes' : 'Ver Detalhes'}
                                                                 </button>
                                                                 <button
                                                                     onClick={async (e) => {
                                                                         e.stopPropagation();
                                                                         setArchivingId(alert.id);
-                                                                        await supabase.from('intelligence_feed').update({ status: 'archived' }).eq('id', alert.id);
+                                                                        const { error } = await supabase.from('intelligence_feed').update({ status: 'archived' }).eq('id', alert.id);
+                                                                        if (error) {
+                                                                            console.error('[Dispensar] Archive failed:', error);
+                                                                            alert(`Erro ao dispensar alerta: ${error.message}`);
+                                                                            setArchivingId(null);
+                                                                            return;
+                                                                        }
                                                                         setStats(prev => {
                                                                             if (!prev) return prev;
                                                                             return { ...prev, recent_alerts: prev.recent_alerts.filter((a: any) => a.id !== alert.id) };
                                                                         });
+                                                                        if (highlightedAlert?.id === alert.id) setHighlightedAlert(null);
                                                                         setExpandedAlertId(null);
                                                                         setArchivingId(null);
                                                                     }}
                                                                     disabled={archivingId === alert.id}
-                                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-lg transition-all disabled:opacity-50"
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all disabled:opacity-50"
                                                                 >
-                                                                    {archivingId === alert.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />}
-                                                                    Arquivar
+                                                                    {archivingId === alert.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                                                                    Dispensar
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
@@ -863,6 +904,81 @@ export const Dashboard: React.FC = () => {
                                         {alertsLoadingMore ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                                         {alertsLoadingMore ? 'Carregando...' : `Ver mais alertas (${alertsTotal - s.recent_alerts.length})`}
                                     </button>
+                                </div>
+                            )}
+
+                            {/* Highlighted Alert Card — inline detail preview */}
+                            {highlightedAlert && (
+                                <div className="p-4 border-t-2 border-red-500/50 bg-gradient-to-b from-red-950/20 via-slate-900/50 to-transparent animate-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-3 h-3 rounded-full ${(highlightedAlert.risk_score || 0) >= 80 ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}`} />
+                                            <h3 className="text-sm font-bold text-white">{highlightedAlert.title || 'Sem título'}</h3>
+                                        </div>
+                                        <button onClick={() => setHighlightedAlert(null)} className="text-slate-500 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                                        {highlightedAlert.risk_score != null && (
+                                            <Badge variant={(highlightedAlert.risk_score || 0) >= 80 ? 'danger' : 'warning'}>
+                                                RISCO {highlightedAlert.risk_score}
+                                            </Badge>
+                                        )}
+                                        {highlightedAlert.sentiment && (
+                                            <Badge variant={highlightedAlert.sentiment === 'negative' ? 'danger' : highlightedAlert.sentiment === 'positive' ? 'success' : 'default'}>
+                                                {highlightedAlert.sentiment === 'negative' ? 'Negativo' : highlightedAlert.sentiment === 'positive' ? 'Positivo' : 'Neutro'}
+                                            </Badge>
+                                        )}
+                                        <Badge variant="default">{highlightedAlert.source || 'Fonte desconhecida'}</Badge>
+                                        <span className="text-[10px] text-slate-500 ml-auto">
+                                            {formatDistanceToNow(new Date(highlightedAlert.created_at), { addSuffix: true, locale: ptBR })}
+                                        </span>
+                                    </div>
+                                    <div className="text-sm text-slate-300 leading-relaxed max-h-48 overflow-y-auto pr-2 bg-slate-900/60 rounded-lg p-3 border border-slate-700/50 mb-3">
+                                        {highlightedAlert.content || highlightedAlert.text || highlightedAlert.summary || 'Sem conteúdo detalhado.'}
+                                    </div>
+                                    {(highlightedAlert.classification_metadata?.detected_entities || []).length > 0 && (
+                                        <div className="flex items-center gap-2 flex-wrap mb-3">
+                                            <span className="text-[10px] text-slate-500 uppercase font-semibold">Entidades:</span>
+                                            {(highlightedAlert.classification_metadata?.detected_entities || []).map((e: string, i: number) => (
+                                                <span key={i} className="text-[10px] px-2 py-0.5 bg-primary/10 border border-primary/20 rounded-full text-primary font-medium">{e}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {highlightedAlert.classification_metadata?.per_entity_analysis?.length > 0 && (
+                                        <div className="space-y-2 mb-3">
+                                            <span className="text-[10px] text-slate-500 uppercase font-semibold">Análise por Citado:</span>
+                                            {highlightedAlert.classification_metadata.per_entity_analysis.slice(0, 3).map((ea: any, i: number) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs">
+                                                    <span className="font-medium text-white">{ea.entity_name}</span>
+                                                    <Badge variant={ea.sentiment === 'negative' ? 'danger' : ea.sentiment === 'positive' ? 'success' : 'default'} className="text-[9px]">
+                                                        {ea.sentiment}
+                                                    </Badge>
+                                                    {ea.context && <span className="text-slate-400 truncate">{ea.context}</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {highlightedAlert.url && (
+                                            <a
+                                                href={highlightedAlert.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                                            >
+                                                <ExternalLink className="w-3 h-3" />
+                                                Fonte original
+                                            </a>
+                                        )}
+                                        <button
+                                            onClick={() => navigate('/feed')}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all ml-auto"
+                                        >
+                                            Ir ao Feed Completo →
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
@@ -1091,7 +1207,7 @@ export const Dashboard: React.FC = () => {
                                 </div>
                             )}
 
-                            {!wordFeedLoading && wordFeedItems.map(item => (
+                            {!wordFeedLoading && wordFeedItems.map((item: any) => (
                                 <article
                                     key={item.id}
                                     className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 hover:border-primary/30 transition-colors"
@@ -1109,7 +1225,7 @@ export const Dashboard: React.FC = () => {
                                             </div>
 
                                             <p className="text-slate-200 text-sm leading-relaxed line-clamp-3">
-                                                {item.text || item.summary || item.title}
+                                                {item.content || item.text || item.summary || item.title}
                                             </p>
 
                                             <div className="flex items-center gap-2 flex-wrap">
@@ -1130,7 +1246,7 @@ export const Dashboard: React.FC = () => {
                                                 {(item.classification_metadata?.keywords || item.keywords || []).slice(0, 3).map((kw: string) => (
                                                     <span
                                                         key={kw}
-                                                        className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${kw.toLowerCase() === selectedWord.toLowerCase()
+                                                        className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${kw.toLowerCase() === selectedWord?.toLowerCase()
                                                             ? 'bg-primary/20 text-primary border-primary/30'
                                                             : 'text-slate-400 border-slate-700 bg-slate-800/30'
                                                             }`}
@@ -1141,8 +1257,8 @@ export const Dashboard: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className={`flex flex-col items-center justify-center w-9 h-9 rounded-lg border font-bold text-xs shrink-0 ${item.risk_score >= 7 ? 'text-red-400 border-red-900 bg-red-950/30' :
-                                            item.risk_score >= 4 ? 'text-amber-400 border-amber-900 bg-amber-950/30' :
+                                        <div className={`flex flex-col items-center justify-center w-9 h-9 rounded-lg border font-bold text-xs shrink-0 ${item.risk_score >= 70 ? 'text-red-400 border-red-900 bg-red-950/30' :
+                                            item.risk_score >= 40 ? 'text-amber-400 border-amber-900 bg-amber-950/30' :
                                                 'text-emerald-400 border-emerald-900 bg-emerald-950/30'
                                             }`}>
                                             {item.risk_score}

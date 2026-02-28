@@ -97,8 +97,8 @@ export class ElegeSyncService {
 
             const data = response.data;
 
-            // Assume the API returns an array or an object with 'data' array
-            const people = Array.isArray(data) ? data : (data.data || []);
+            // API returns {people: [...], meta: {...}}
+            const people = Array.isArray(data) ? data : (data.people || data.data || []);
 
             if (people.length > 0) {
                 return people[0].id;
