@@ -95,71 +95,7 @@ interface Mention {
     };
 }
 
-const TV_RADIO_MOCKS: Mention[] = [
-    {
-        id: 'mock-1',
-        title: 'Flávio Bolsonaro discursa sobre reforma tributária no Senado',
-        summary: 'O senador defendeu mudanças no texto base focado em isenções para o setor primário e criticou o excesso de burocracia.',
-        text: 'O senador defendeu mudanças no texto base focado em isenções para o setor primário e criticou o excesso de burocracia.',
-        source: 'Jornal Nacional',
-        source_type: 'tv',
-        url: '#',
-        theme: 'Economia',
-        narrative: 'Apoio à reforma',
-        sentiment: 'neutral',
-        risk_score: 25,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        classification_metadata: {
-            assets: [
-                { media_type: 'image', url: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=1470&auto=format&fit=crop' }
-            ],
-            keywords: ['Flavio Bolsonaro', 'Reforma Tributária']
-        }
-    },
-    {
-        id: 'mock-2',
-        title: 'Especialistas debatem futuro econômico e propostas do PL',
-        summary: 'Entrevista com economistas analisando as recentes propostas apresentadas por Flavio Bolsonaro no congresso nacional.',
-        text: 'Entrevista com economistas analisando as recentes propostas apresentadas por Flavio Bolsonaro no congresso nacional.',
-        source: 'CNN Brasil',
-        source_type: 'tv',
-        url: '#',
-        theme: 'Economia',
-        narrative: 'Análise econômica',
-        sentiment: 'positive',
-        risk_score: 15,
-        status: 'pending',
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        classification_metadata: {
-            assets: [
-                { media_type: 'image', url: 'https://images.unsplash.com/photo-1621252179027-94459d278660?q=80&w=1470&auto=format&fit=crop' }
-            ],
-            keywords: ['Flavio Bolsonaro', 'Economia']
-        }
-    },
-    {
-        id: 'mock-3',
-        title: 'Giro de notícias de Brasília: Oposição articula vetos',
-        summary: 'Resumo das atividades parlamentares desta semana inclui posicionamentos da oposição e discursos de Flavio Bolsonaro.',
-        text: 'Resumo das atividades parlamentares desta semana inclui posicionamentos da oposição e discursos de Flavio Bolsonaro.',
-        source: 'Rádio CBN',
-        source_type: 'radio',
-        url: '#',
-        theme: 'Política',
-        narrative: 'Articulação do Congresso',
-        sentiment: 'neutral',
-        risk_score: 30,
-        status: 'pending',
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-        classification_metadata: {
-            assets: [
-                { media_type: 'image', url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1470&auto=format&fit=crop' }
-            ],
-            keywords: ['Flavio Bolsonaro', 'Congresso']
-        }
-    }
-];
+
 
 interface KeywordStats {
     count_24h: number;
@@ -787,20 +723,7 @@ export const IntelligenceFeed: React.FC = () => {
                         </div>
                     )}
 
-                    {(!loading && mentions.length === 0 && (feedTab === 'tv' || feedTab === 'radio') && !keywordFilter && TV_RADIO_MOCKS.filter(m => m.source_type === feedTab).length > 0) && (
-                        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                            <div>
-                                <h4 className="text-amber-400 text-sm font-medium">Exibição de Demonstração</h4>
-                                <p className="text-amber-200/70 text-xs mt-1">
-                                    Nenhuma menção real detectada pelo Elege.AI para este canal ainda.
-                                    Abaixo estão exemplos de como o conteúdo será exibido assim que for capturado.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {(mentions.length > 0 ? mentions : ((feedTab === 'tv' || feedTab === 'radio') && !loading && !keywordFilter ? TV_RADIO_MOCKS.filter(m => m.source_type === feedTab) : []))
+                    {mentions
                         .filter(m => {
                             if (!keywordFilter) return true;
                             // Always do inclusive text search: title, content, summary, source AND keywords
