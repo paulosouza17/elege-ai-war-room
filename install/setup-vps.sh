@@ -477,9 +477,14 @@ install_and_build() {
     if [[ "$NO_FRONTEND" = false ]]; then
         info "Installing frontend dependencies..."
         cd "$INSTALL_DIR/web"
-        # Remove lockfile to avoid cross-platform optional dep issues (macOS vs Linux)
+        # Remove ALL lockfiles — workspace resolution reads root lockfile too
+        # Lockfiles generated on macOS miss linux-specific optional deps (rollup)
+        rm -f "$INSTALL_DIR/package-lock.json"
         rm -f "$INSTALL_DIR/web/package-lock.json"
+        rm -f "$INSTALL_DIR/backend/package-lock.json"
         sudo -u "$DEPLOY_USER" npm install
+        # Ensure platform-specific rollup binary is present
+        sudo -u "$DEPLOY_USER" npm install @rollup/rollup-linux-x64-gnu 2>/dev/null || true
         log "Frontend dependencies installed"
 
         info "Building frontend (Vite)..."
