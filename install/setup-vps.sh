@@ -396,23 +396,31 @@ setup_project_dir() {
 setup_env_files() {
     section "10/14 — ENVIRONMENT FILES"
 
-    # Backend .env
+    # Backend .env — prefer .env.deploy (real creds) over .env.example (placeholders)
     if [[ ! -f "$INSTALL_DIR/backend/.env" ]]; then
-        if [[ -f "$INSTALL_DIR/backend/.env.example" ]]; then
+        if [[ -f "$INSTALL_DIR/backend/.env.deploy" ]]; then
+            cp "$INSTALL_DIR/backend/.env.deploy" "$INSTALL_DIR/backend/.env"
+            # Force production mode
+            sed -i "s|NODE_ENV=.*|NODE_ENV=production|" "$INSTALL_DIR/backend/.env"
+            log "backend/.env created from .env.deploy ✓"
+        elif [[ -f "$INSTALL_DIR/backend/.env.example" ]]; then
             cp "$INSTALL_DIR/backend/.env.example" "$INSTALL_DIR/backend/.env"
             warn "Created backend/.env from template. ⚠️  EDIT IT NOW:"
             warn "  nano $INSTALL_DIR/backend/.env"
         else
-            error "No .env.example found! Create backend/.env manually."
+            error "No .env.deploy or .env.example found! Create backend/.env manually."
         fi
     else
         log "backend/.env already exists"
     fi
 
-    # Frontend .env
+    # Frontend .env — prefer .env.deploy (real creds) over .env.example (placeholders)
     if [[ "$NO_FRONTEND" = false ]]; then
         if [[ ! -f "$INSTALL_DIR/web/.env" ]]; then
-            if [[ -f "$INSTALL_DIR/web/.env.example" ]]; then
+            if [[ -f "$INSTALL_DIR/web/.env.deploy" ]]; then
+                cp "$INSTALL_DIR/web/.env.deploy" "$INSTALL_DIR/web/.env"
+                log "web/.env created from .env.deploy ✓"
+            elif [[ -f "$INSTALL_DIR/web/.env.example" ]]; then
                 cp "$INSTALL_DIR/web/.env.example" "$INSTALL_DIR/web/.env"
 
                 # If we have a domain, auto-fill backend URL
