@@ -45,10 +45,10 @@ export class ElegeSyncService {
         console.log('[ElegeSync] Starting sync cycle...');
 
         try {
-            // 1. Get active activations
+            // 1. Get active activations with people_of_interest
             const { data: activations, error: actError } = await this.supabase
                 .from('activations')
-                .select('id, name')
+                .select('id, title, name, people_of_interest, keywords')
                 .eq('status', 'active');
 
             if (actError) throw actError;
@@ -69,21 +69,31 @@ export class ElegeSyncService {
     }
 
     private async syncActivation(activation: any) {
-        console.log(`[ElegeSync] Syncing for activation: ${activation.name} (${activation.id})`);
+        const activationLabel = activation.title || activation.name || activation.id;
+        const people = activation.people_of_interest || [];
 
-        try {
-            // 2. Discover person_id in Elege API
-            const personId = await this.getPersonId(activation.name);
-            if (!personId) {
-                console.log(`[ElegeSync] Person not found in Elege API for: ${activation.name}`);
-                return;
+        if (people.length === 0) {
+            console.log(`[ElegeSync] Activation "${activationLabel}" has no people_of_interest configured. Skipping.`);
+            return;
+        }
+
+        console.log(`[ElegeSync] Syncing activation "${activationLabel}" — ${people.length} person(s) of interest`);
+
+        for (const personName of people) {
+            try {
+                // 2. Discover person_id in Elege API
+                const personId = await this.getPersonId(personName);
+                if (!personId) {
+                    console.log(`[ElegeSync] Person not found in Elege API for: "${personName}"`);
+                    continue;
+                }
+
+                // 3. Fetch latest mentions
+                await this.fetchAndStoreMentions(personId, activation);
+
+            } catch (error: any) {
+                console.error(`[ElegeSync] Failed to sync person "${personName}":`, error.message);
             }
-
-            // 3. Fetch latest mentions (we can fetch general and filter, or fetch all mapped)
-            await this.fetchAndStoreMentions(personId, activation);
-
-        } catch (error: any) {
-            console.error(`[ElegeSync] Failed to sync activation ${activation.name}:`, error.message);
         }
     }
 
