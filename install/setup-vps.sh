@@ -447,12 +447,19 @@ setup_env_files() {
 install_and_build() {
     section "11/14 — INSTALL DEPENDENCIES & BUILD"
 
+    # CRITICAL: Remove root package.json to disable workspace hoisting.
+    # Workspaces cause npm to hoist deps to /opt/warroom/node_modules,
+    # breaking platform-specific optional deps (rollup linux binaries).
+    info "Disabling npm workspaces for independent installs..."
+    rm -f "$INSTALL_DIR/package.json"
+    rm -f "$INSTALL_DIR/package-lock.json"
+    rm -rf "$INSTALL_DIR/node_modules"
+
     # Backend
     info "Installing backend dependencies..."
     cd "$INSTALL_DIR/backend"
-
-    # Install ALL deps (need devDeps for tsc build)
-    sudo -u "$DEPLOY_USER" npm ci 2>/dev/null || sudo -u "$DEPLOY_USER" npm install
+    rm -f package-lock.json
+    sudo -u "$DEPLOY_USER" npm install
     log "Backend dependencies installed"
 
     info "Building TypeScript..."
@@ -477,14 +484,9 @@ install_and_build() {
     if [[ "$NO_FRONTEND" = false ]]; then
         info "Installing frontend dependencies..."
         cd "$INSTALL_DIR/web"
-        # Remove ALL lockfiles — workspace resolution reads root lockfile too
-        # Lockfiles generated on macOS miss linux-specific optional deps (rollup)
-        rm -f "$INSTALL_DIR/package-lock.json"
-        rm -f "$INSTALL_DIR/web/package-lock.json"
-        rm -f "$INSTALL_DIR/backend/package-lock.json"
+        rm -f package-lock.json
+        rm -rf node_modules
         sudo -u "$DEPLOY_USER" npm install
-        # Ensure platform-specific rollup binary is present
-        sudo -u "$DEPLOY_USER" npm install @rollup/rollup-linux-x64-gnu 2>/dev/null || true
         log "Frontend dependencies installed"
 
         info "Building frontend (Vite)..."
