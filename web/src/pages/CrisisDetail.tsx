@@ -494,7 +494,7 @@ export const CrisisDetail: React.FC = () => {
                                                 <div className="flex justify-between text-sm mb-1">
                                                     <span className="text-slate-400">{risk.type}</span>
                                                     <span className={`font-bold ${risk.level === 'High' ? 'text-danger' : risk.level === 'Medium' ? 'text-warning' : 'text-slate-300'}`}>
-                                                        {{ High: 'ALTO', Medium: 'MÉDIO', Low: 'BAIXO' }[risk.level] || risk.level.toUpperCase()}
+                                                        {({ High: 'ALTO', Medium: 'MÉDIO', Low: 'BAIXO' } as Record<string, string>)[risk.level] || risk.level.toUpperCase()}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-slate-500">{risk.description}</p>
