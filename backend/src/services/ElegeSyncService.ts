@@ -48,7 +48,7 @@ export class ElegeSyncService {
             // 1. Get active activations with people_of_interest
             const { data: activations, error: actError } = await this.supabase
                 .from('activations')
-                .select('id, title, name, people_of_interest, keywords')
+                .select('id, name, people_of_interest, keywords')
                 .eq('status', 'active');
 
             if (actError) throw actError;
@@ -69,7 +69,7 @@ export class ElegeSyncService {
     }
 
     private async syncActivation(activation: any) {
-        const activationLabel = activation.title || activation.name || activation.id;
+        const activationLabel = activation.name || activation.id;
         const people = activation.people_of_interest || [];
 
         if (people.length === 0) {
