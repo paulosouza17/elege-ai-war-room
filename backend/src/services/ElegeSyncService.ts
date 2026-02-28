@@ -134,9 +134,6 @@ export class ElegeSyncService {
 
     private async fetchAndStoreMentions(personId: number, activation: any) {
         try {
-            // Hardcoded mapping of Elege 'kind' values to our DB values based on common defaults
-            // But we will use the string literal 'tv', 'radio', 'news' return values if available, 
-            // otherwise we map based on channel.kind string representation.
             const url = `${this.apiBaseUrl}/analytics/mentions/latest?person_id=${personId}&limit=50&period=7d`;
 
             const response = await axios.get(url, {
@@ -150,25 +147,25 @@ export class ElegeSyncService {
             const data = response.data;
             const mentions = data.data || data.mentions || [];
 
+            console.log(`[ElegeSync] DEBUG: Mentions endpoint returned ${mentions.length} items for person_id ${personId}`);
+
             if (mentions.length === 0) {
                 console.log(`[ElegeSync] No mentions found for person_id ${personId}`);
                 return;
             }
 
-            // Let's filter only the ones that are relevant to the requested tabs
-            // And avoid inserting duplicates
             let newInserts = 0;
+            let skippedDuplicates = 0;
+            let insertErrors = 0;
 
             for (const item of mentions) {
-                // Elege response: item.person, item.post, item.channel
                 const post = item.post;
-                const channel = item.channel || { name: 'Unknown', kind: 'news' };
+                const channel = item.channel || { title: 'Unknown', kind: 'news' };
 
                 if (!post) continue;
 
-                // Unique identifier for the intelligence_feed URL to prevent duplicates
-                // Since Elege API might not provide a permalink in "post.url" for TV clips, we use post.id
-                const postUrl = post.url || `elegeai-post-${post.id}`;
+                // Unique identifier — use mention id for uniqueness since post.id can repeat across people
+                const postUrl = post.url || `elegeai-mention-${item.id || post.id}`;
 
                 // Check if already exists in DB
                 const { data: existing } = await this.supabase
@@ -178,31 +175,42 @@ export class ElegeSyncService {
                     .single();
 
                 if (existing) {
-                    continue; // Skip document
+                    skippedDuplicates++;
+                    continue;
                 }
 
-                // Map Source Typer
+                // Map Source Type — channel.kind from API
                 let sourceType = 'portal';
                 if (channel.kind === 'tv' || channel.kind === 2) sourceType = 'tv';
                 else if (channel.kind === 'radio' || channel.kind === 3) sourceType = 'radio';
                 else if (channel.kind === 'social' || channel.kind === 4) sourceType = 'social_media';
 
-                // Map Sentiment & Risk
+                // Map Sentiment & Risk — handle 'mixed' as neutral
                 let sentiment = 'neutral';
                 let riskScore = 50;
 
                 if (item.sentiment === 'negative' || item.sentiment?.tone === 'negative') {
                     sentiment = 'negative';
-                    riskScore = 75; // Arbitrary high default
+                    riskScore = 75;
                 } else if (item.sentiment === 'positive' || item.sentiment?.tone === 'positive') {
                     sentiment = 'positive';
-                    riskScore = 20; // Arbitrary low default
+                    riskScore = 20;
+                } else if (item.sentiment === 'mixed') {
+                    sentiment = 'neutral';
+                    riskScore = 60;
                 }
+
+                // Use item.subject or post content for the summary/content
+                const contentText = item.subject || post.content || post.title || '';
+                const channelName = channel.title || channel.name || 'Elege.AI API';
 
                 // Keywords extraction
                 let keywords = [activation.name];
                 if (post.categories) {
                     keywords = [...keywords, ...post.categories];
+                }
+                if (item.person?.name) {
+                    keywords.push(item.person.name);
                 }
 
                 // Insert into intelligence_feed
@@ -210,9 +218,9 @@ export class ElegeSyncService {
                     .from('intelligence_feed')
                     .insert({
                         title: post.title || 'Sem título',
-                        summary: post.summary || post.content?.substring(0, 150) || 'Sem resumo',
-                        content: post.content || post.title || '',
-                        source: channel.name || 'Elege.AI API',
+                        summary: item.subject || post.summary || contentText.substring(0, 150) || 'Sem resumo',
+                        content: contentText,
+                        source: channelName,
                         source_type: sourceType,
                         sentiment: sentiment,
                         risk_score: riskScore,
@@ -220,26 +228,31 @@ export class ElegeSyncService {
                         keywords: keywords,
                         activation_id: activation.id,
                         status: 'pending',
-                        created_at: post.published_at || new Date().toISOString(),
-                        published_at: post.published_at || new Date().toISOString(),
-                        // Save the raw post payload into metadata for frontend thumbnails
+                        created_at: item.created_at || post.published_at || new Date().toISOString(),
+                        published_at: item.created_at || post.published_at || new Date().toISOString(),
                         classification_metadata: {
                             assets: post.assets || [],
                             channel_kind: channel.kind,
+                            elege_mention_id: item.id,
                             elege_post_id: post.id,
-                            source_name: channel.name,
+                            source_name: channelName,
+                            person_name: item.person?.name,
+                            person_title: item.person?.title,
+                            relevance: item.relevance,
+                            participation: item.participation,
                             content_type_detected: sourceType
                         }
                     });
 
                 if (insertError) {
-                    console.error(`[ElegeSync] Error inserting post ${post.id}:`, insertError.message);
+                    insertErrors++;
+                    console.error(`[ElegeSync] Error inserting mention ${item.id}:`, insertError.message);
                 } else {
                     newInserts++;
                 }
             }
 
-            console.log(`[ElegeSync] Inserted ${newInserts} new mentions for ${activation.name}.`);
+            console.log(`[ElegeSync] Sync result for ${activation.name}: ${newInserts} inserted, ${skippedDuplicates} duplicates skipped, ${insertErrors} errors`);
 
         } catch (error) {
             console.error(`[ElegeSync] fetchAndStoreMentions error:`, error);
