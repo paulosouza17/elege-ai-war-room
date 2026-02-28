@@ -93,7 +93,10 @@ export class ElegeSyncService {
             console.log(`[ElegeSync] DEBUG: GET ${url} | Token prefix: ${this.apiKey?.substring(0, 6)}...`);
 
             const response = await axios.get(url, {
-                headers: { 'Authorization': `Bearer ${this.apiKey}` },
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Accept': 'application/json',
+                },
                 timeout: 30000,
             });
 
@@ -127,7 +130,10 @@ export class ElegeSyncService {
             const url = `${this.apiBaseUrl}/analytics/mentions/latest?person_id=${personId}&limit=50&period=7d`;
 
             const response = await axios.get(url, {
-                headers: { 'Authorization': `Bearer ${this.apiKey}` },
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Accept': 'application/json',
+                },
                 timeout: 30000,
             });
 
