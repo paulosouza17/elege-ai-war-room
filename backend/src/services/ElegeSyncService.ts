@@ -90,23 +90,28 @@ export class ElegeSyncService {
     private async getPersonId(name: string): Promise<number | null> {
         try {
             const url = `${this.apiBaseUrl}/people?q=${encodeURIComponent(name)}`;
+            console.log(`[ElegeSync] DEBUG: GET ${url} | Token prefix: ${this.apiKey?.substring(0, 6)}...`);
+
             const response = await axios.get(url, {
                 headers: { 'Authorization': `Bearer ${this.apiKey}` },
                 timeout: 30000,
             });
 
+            console.log(`[ElegeSync] DEBUG: Response status ${response.status}, keys: ${Object.keys(response.data || {}).join(',')}`);
             const data = response.data;
 
             // API returns {people: [...], meta: {...}}
             const people = Array.isArray(data) ? data : (data.people || data.data || []);
 
+            console.log(`[ElegeSync] DEBUG: Found ${people.length} people for "${name}"`);
             if (people.length > 0) {
+                console.log(`[ElegeSync] DEBUG: First person: id=${people[0].id}, alias=${people[0].alias}`);
                 return people[0].id;
             }
             return null;
         } catch (error: any) {
             if (error.response) {
-                console.warn(`[ElegeSync] API /people returned ${error.response.status}`);
+                console.warn(`[ElegeSync] API /people returned ${error.response.status} | Body: ${JSON.stringify(error.response.data)?.substring(0, 300)}`);
             } else {
                 console.error(`[ElegeSync] getPersonId error:`, error.message);
             }
