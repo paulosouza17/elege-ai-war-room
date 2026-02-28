@@ -477,7 +477,9 @@ install_and_build() {
     if [[ "$NO_FRONTEND" = false ]]; then
         info "Installing frontend dependencies..."
         cd "$INSTALL_DIR/web"
-        sudo -u "$DEPLOY_USER" npm ci 2>/dev/null || sudo -u "$DEPLOY_USER" npm install
+        # Remove lockfile to avoid cross-platform optional dep issues (macOS vs Linux)
+        rm -f "$INSTALL_DIR/web/package-lock.json"
+        sudo -u "$DEPLOY_USER" npm install
         log "Frontend dependencies installed"
 
         info "Building frontend (Vite)..."
