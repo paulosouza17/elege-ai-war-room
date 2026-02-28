@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import axios from 'axios';
 import { healthCheckRouter } from './routes/health';
 import ingestionRouter from './routes/ingestion';
 import { aiRouter } from './routes/ai';
@@ -46,44 +47,33 @@ app.use('/api/v1/ingest', manualAnalysisRouter); // Manual analysis (standalone 
 app.get('/api/elege/assets/:postId/:assetId', async (req, res) => {
     const { postId, assetId } = req.params;
     try {
-        const { data: ds } = await createClient(
-            process.env.SUPABASE_URL || '',
-            process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-        ).from('data_sources').select('credentials').eq('type', 'elegeai').limit(1).single();
-
-        const token = ds?.credentials?.api_token || process.env.ELEGEAI_API_TOKEN || '';
-        const baseUrl = ds?.credentials?.base_url || process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
-
+        const token = process.env.ELEGEAI_API_TOKEN || '';
+        const baseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
         const downloadUrl = `${baseUrl}/api/posts/${postId}/assets/${assetId}/download`;
-        const upstream = await fetch(downloadUrl, {
+
+        console.log(`[ElegeProxy] Fetching ${downloadUrl}`);
+
+        const upstream = await axios.get(downloadUrl, {
             headers: { 'Authorization': `Bearer ${token}` },
+            responseType: 'stream',
+            timeout: 120000,
         });
 
-        if (!upstream.ok) {
-            return res.status(upstream.status).json({ error: 'Asset not found' });
-        }
-
-        const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
-        const contentLength = upstream.headers.get('content-length');
+        const contentType = upstream.headers['content-type'] || 'application/octet-stream';
+        const contentLength = upstream.headers['content-length'];
 
         res.setHeader('Content-Type', contentType);
         if (contentLength) res.setHeader('Content-Length', contentLength);
         res.setHeader('Cache-Control', 'public, max-age=86400');
 
-        const reader = upstream.body?.getReader();
-        if (!reader) return res.status(500).json({ error: 'No body' });
-
-        const pump = async () => {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) { res.end(); return; }
-                res.write(value);
-            }
-        };
-        await pump();
+        upstream.data.pipe(res);
     } catch (error: any) {
-        console.error(`[ElegeProxy] Asset ${postId}/${assetId} failed:`, error.message);
-        res.status(500).json({ error: error.message });
+        const status = error.response?.status || 500;
+        const message = error.response?.statusText || error.message;
+        console.error(`[ElegeProxy] Asset ${postId}/${assetId} failed (${status}):`, message);
+        if (!res.headersSent) {
+            res.status(status).json({ error: message });
+        }
     }
 });
 
@@ -100,6 +90,7 @@ import { SchedulerService } from './services/schedulerService'; // Fixed casing
 import { WatchdogService } from './services/watchdogService';
 import { UserService } from './services/userService';
 import { ElegeSyncService } from './services/ElegeSyncService';
+import { DbCleanupService } from './services/dbCleanupService';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Services for Flow Execution
@@ -113,6 +104,7 @@ const schedulerService = new SchedulerService(supabaseClient, flowService);
 const userService = new UserService(supabaseClient);
 const watchdogService = new WatchdogService(supabaseClient);
 const elegeSyncService = new ElegeSyncService(supabaseClient);
+const dbCleanupService = new DbCleanupService(supabaseClient);
 
 // Admin Middleware
 const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -284,10 +276,68 @@ serviceRegistry.elegesync = {
     stop: stopElegeSync,
 };
 
+// --- DB Cleanup Service (auto-purge old flow_executions) ---
+const DB_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
+let dbCleanupInterval: NodeJS.Timeout | null = null;
+
+const startDbCleanup = () => {
+    if (serviceRegistry.dbcleanup?.running) return;
+    const entry = serviceRegistry.dbcleanup;
+    entry.running = true;
+    entry.startedAt = new Date().toISOString();
+
+    // Run once immediately on start
+    dbCleanupService.runCleanup().then(result => {
+        entry.lastTickAt = new Date().toISOString();
+        entry.tickCount++;
+        console.log(`🧹 [DbCleanup] Initial run: ${result.deleted} deleted, ${result.cleared} cleared`);
+    }).catch(err => {
+        entry.errors++;
+        console.error('[DbCleanup] Initial run error:', err);
+    });
+
+    dbCleanupInterval = setInterval(async () => {
+        try {
+            const result = await dbCleanupService.runCleanup();
+            entry.lastTickAt = new Date().toISOString();
+            entry.tickCount++;
+            console.log(`🧹 [DbCleanup] Tick: ${result.deleted} deleted, ${result.cleared} cleared`);
+        } catch (err) {
+            entry.errors++;
+            console.error('[DbCleanup] Error:', err);
+        }
+    }, DB_CLEANUP_INTERVAL_MS);
+    console.log('🧹 [ServiceRegistry] DB Cleanup started (every 6h)');
+};
+
+const stopDbCleanup = () => {
+    if (dbCleanupInterval) {
+        clearInterval(dbCleanupInterval);
+        dbCleanupInterval = null;
+    }
+    serviceRegistry.dbcleanup.running = false;
+    console.log('🧹 [ServiceRegistry] DB Cleanup stopped');
+};
+
+serviceRegistry.dbcleanup = {
+    name: 'dbcleanup',
+    label: 'Limpeza de Banco',
+    running: false,
+    startedAt: null,
+    lastTickAt: null,
+    tickCount: 0,
+    errors: 0,
+    intervalMs: DB_CLEANUP_INTERVAL_MS,
+    intervalRef: null,
+    start: startDbCleanup,
+    stop: stopDbCleanup,
+};
+
 // Boot services
 startScheduler();
 startWatchdog();
 startElegeSync();
+startDbCleanup();
 
 // ═══════════════════════════════════════════════════════════
 // ADMIN ENDPOINTS — Service Control & Health
@@ -380,6 +430,22 @@ app.post('/api/admin/executions/kill-stuck', requireAdmin, async (req, res) => {
         res.json({ success: true, killed: ids.length, ids: ids.map((id: string) => id.slice(0, 8)) });
     } catch (error: any) {
         console.error('[Admin] Kill stuck failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /api/admin/db-cleanup — Trigger manual DB cleanup
+app.post('/api/admin/db-cleanup', requireAdmin, async (req, res) => {
+    try {
+        const result = await dbCleanupService.runCleanup();
+        res.json({
+            success: true,
+            deleted: result.deleted,
+            cleared: result.cleared,
+            message: `Limpeza concluída: ${result.deleted} execuções removidas, ${result.cleared} contextos limpos`,
+        });
+    } catch (error: any) {
+        console.error('[Admin] DB cleanup failed:', error);
         res.status(500).json({ error: error.message });
     }
 });

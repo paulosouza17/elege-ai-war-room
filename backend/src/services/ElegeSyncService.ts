@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import axios from 'axios';
 
 export class ElegeSyncService {
     private supabase: SupabaseClient;
@@ -89,16 +90,12 @@ export class ElegeSyncService {
     private async getPersonId(name: string): Promise<number | null> {
         try {
             const url = `${this.apiBaseUrl}/people?q=${encodeURIComponent(name)}`;
-            const response = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${this.apiKey}` }
+            const response = await axios.get(url, {
+                headers: { 'Authorization': `Bearer ${this.apiKey}` },
+                timeout: 30000,
             });
 
-            if (!response.ok) {
-                console.warn(`[ElegeSync] API /people returned ${response.status}`);
-                return null;
-            }
-
-            const data = await response.json();
+            const data = response.data;
 
             // Assume the API returns an array or an object with 'data' array
             const people = Array.isArray(data) ? data : (data.data || []);
@@ -107,8 +104,12 @@ export class ElegeSyncService {
                 return people[0].id;
             }
             return null;
-        } catch (error) {
-            console.error(`[ElegeSync] getPersonId error:`, error);
+        } catch (error: any) {
+            if (error.response) {
+                console.warn(`[ElegeSync] API /people returned ${error.response.status}`);
+            } else {
+                console.error(`[ElegeSync] getPersonId error:`, error.message);
+            }
             return null;
         }
     }
@@ -120,16 +121,12 @@ export class ElegeSyncService {
             // otherwise we map based on channel.kind string representation.
             const url = `${this.apiBaseUrl}/analytics/mentions/latest?person_id=${personId}&limit=50&period=7d`;
 
-            const response = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${this.apiKey}` }
+            const response = await axios.get(url, {
+                headers: { 'Authorization': `Bearer ${this.apiKey}` },
+                timeout: 30000,
             });
 
-            if (!response.ok) {
-                console.warn(`[ElegeSync] API /analytics/mentions/latest returned ${response.status}`);
-                return;
-            }
-
-            const data = await response.json();
+            const data = response.data;
             const mentions = data.data || data.mentions || [];
 
             if (mentions.length === 0) {
