@@ -526,16 +526,18 @@ export const IntelligenceFeed: React.FC = () => {
                     newData = newData.filter(m => {
                         const cm = m.classification_metadata || {};
                         // Build searchable text from all relevant fields
-                        const entities = (cm.detected_entities || []).map(e => e.toLowerCase());
+                        const entities = (cm.detected_entities || []).map((e: string) => e.toLowerCase());
                         const peaEntities = (cm.per_entity_analysis || []).map((ea: any) => (ea.entity || ea.entity_name || '').toLowerCase());
                         const itemKeywords = safeKeywords(cm.keywords || []).map(k => k.toLowerCase());
+                        const personName = (cm.person_name || '').toLowerCase();
                         const titleLower = (m.title || '').toLowerCase();
                         const contentLower = (m.content || m.summary || '').toLowerCase();
 
                         return searchTerms.some(term =>
-                            entities.some(e => e.includes(term) || term.includes(e)) ||
-                            peaEntities.some(e => e.includes(term) || term.includes(e)) ||
+                            entities.some((e: string) => e.includes(term) || term.includes(e)) ||
+                            peaEntities.some((e: string) => e.includes(term) || term.includes(e)) ||
                             itemKeywords.some(k => k.includes(term)) ||
+                            (personName && (personName.includes(term) || term.includes(personName))) ||
                             titleLower.includes(term) ||
                             contentLower.includes(term)
                         );

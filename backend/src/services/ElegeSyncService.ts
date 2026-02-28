@@ -240,7 +240,10 @@ export class ElegeSyncService {
                             person_title: item.person?.title,
                             relevance: item.relevance,
                             participation: item.participation,
-                            content_type_detected: sourceType
+                            content_type_detected: sourceType,
+                            // Frontend filter compatibility
+                            detected_entities: [item.person?.name, item.person?.alias].filter(Boolean),
+                            keywords: keywords,
                         }
                     });
 
