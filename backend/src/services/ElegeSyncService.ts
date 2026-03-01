@@ -9,7 +9,7 @@ export class ElegeSyncService {
     private apiBaseUrl: string = (process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001') + '/api';
     private apiKey: string;
     private watermarkService: SyncWatermarkService;
-    private SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    private SYNC_INTERVAL_MS = (parseInt(process.env.ELEGEAI_SYNC_INTERVAL_MINUTES || '5', 10) || 5) * 60 * 1000;
 
     constructor(supabaseClient: SupabaseClient) {
         this.supabase = supabaseClient;
