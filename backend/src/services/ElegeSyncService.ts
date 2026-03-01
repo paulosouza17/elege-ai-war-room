@@ -715,33 +715,45 @@ export class ElegeSyncService {
 
                             const duration = videoDuration || audioDuration;
 
-                            // Build timeline marks from mention data
-                            const timelineMarks: { position: number; sentiment: string; frameId: number }[] = [];
+                            // Build timeline marks — one per entity/citation with individual sentiment
+                            const timelineMarks: { position: number; sentiment: string; frameId: number; entityName?: string }[] = [];
 
                             if (duration && duration > 0) {
-                                if (frames.length > 0) {
+                                if (allPerEntityAnalysis.length > 0 && frames.length > 0) {
+                                    // Distribute entity marks across the available frames
+                                    const entityCount = allPerEntityAnalysis.length;
+                                    const step = Math.max(1, Math.floor(frames.length / (entityCount + 1)));
+                                    allPerEntityAnalysis.forEach((ea: any, i: number) => {
+                                        const frameIdx = Math.min(step * (i + 1), frames.length - 1);
+                                        timelineMarks.push({
+                                            position: Math.round(frameIdx * FRAME_INTERVAL),
+                                            sentiment: ea.sentiment || worstSentiment,
+                                            frameId: frames[frameIdx]?.id || 0,
+                                            entityName: ea.entity_name,
+                                        });
+                                    });
+                                } else if (allPerEntityAnalysis.length > 0) {
+                                    // Radio (no frames): distribute entity marks across the duration
+                                    const entityCount = allPerEntityAnalysis.length;
+                                    const step = duration / (entityCount + 1);
+                                    allPerEntityAnalysis.forEach((ea: any, i: number) => {
+                                        timelineMarks.push({
+                                            position: Math.round(step * (i + 1)),
+                                            sentiment: ea.sentiment || worstSentiment,
+                                            frameId: 0,
+                                            entityName: ea.entity_name,
+                                        });
+                                    });
+                                } else if (frames.length > 0) {
+                                    // No per-entity data: single mark at midpoint
                                     const midIdx = Math.floor(frames.length / 2);
                                     timelineMarks.push({
                                         position: Math.round(midIdx * FRAME_INTERVAL),
                                         sentiment: worstSentiment,
                                         frameId: frames[midIdx]?.id || 0,
                                     });
-                                    const participation = item.participation;
-                                    if (typeof participation === 'number' && participation > 1) {
-                                        const step = Math.floor(frames.length / Math.min(participation, 5));
-                                        for (let i = 0; i < Math.min(participation, 5); i++) {
-                                            const idx = i * step;
-                                            if (idx !== midIdx && idx < frames.length) {
-                                                timelineMarks.push({
-                                                    position: Math.round(idx * FRAME_INTERVAL),
-                                                    sentiment: worstSentiment,
-                                                    frameId: frames[idx]?.id || 0,
-                                                });
-                                            }
-                                        }
-                                    }
                                 } else {
-                                    // For Radio (no frames): place a single mark at estimated midpoint
+                                    // Radio without entity data: single mark at midpoint
                                     timelineMarks.push({
                                         position: Math.round(duration / 2),
                                         sentiment: worstSentiment,
