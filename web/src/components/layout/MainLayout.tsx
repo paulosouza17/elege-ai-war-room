@@ -8,7 +8,7 @@ export const MainLayout: React.FC = () => {
         <div className="min-h-screen bg-background text-white font-sans">
             <Sidebar />
             <Header />
-            <main className="ml-64 pt-16 min-h-screen p-6">
+            <main className="ml-64 pt-16 min-h-screen px-6 pb-6">
                 <Outlet />
             </main>
         </div>

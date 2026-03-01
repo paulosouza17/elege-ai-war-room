@@ -89,7 +89,7 @@ export const FlowOutputs: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-950">
+        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 -mx-6 -mb-6">
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <header className="p-8 pb-4 flex justify-between items-center border-b border-slate-800 bg-slate-950/50 backdrop-blur z-10">
                     <div>

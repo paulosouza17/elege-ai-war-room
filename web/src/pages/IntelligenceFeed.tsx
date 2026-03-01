@@ -78,7 +78,7 @@ interface Mention {
         elege_post_id?: string;
         source_name?: string;
         content_type_detected?: string;
-        timeline_marks?: { position: number; sentiment: string; frameId: number }[];
+        timeline_marks?: { position: number; sentiment: string; frameId: number; entityName?: string }[];
         video_duration?: number;
         total_frames?: number;
         // Twitter/Social card fields
@@ -305,7 +305,7 @@ const PersonBubbleGroup: React.FC<PersonBubbleGroupProps> = ({ entities, size = 
                     </div>
                     {showOverflow && (
                         <div
-                            className="absolute bottom-full mb-2 right-0 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 min-w-[200px] max-w-[280px]"
+                            className="absolute bottom-0 left-full ml-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 min-w-[200px] max-w-[280px]"
                             style={{ zIndex: 9999 }}
                         >
                             <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Mais pessoas mencionadas</div>
@@ -337,29 +337,33 @@ const PersonBubbleGroup: React.FC<PersonBubbleGroupProps> = ({ entities, size = 
 };
 
 // Helper: extract entity data with Elege person IDs and sentiment from a mention's classification_metadata
-const extractEntityBubbles = (mention: Mention): { id: string | null; name: string; sentiment: string }[] => {
+const extractEntityBubbles = (mention: Mention, nameToElegeId?: Record<string, string>): { id: string | null; name: string; sentiment: string }[] => {
     const cm = mention.classification_metadata || {} as any;
     const perEntity = cm.per_entity_analysis || [];
     const detectedEntities = cm.detected_entities || [];
     // Elege numeric person ID stored at metadata root level (from ElegeSyncService)
     const elegePersonId = cm.elege_person_id;
+    const lookup = nameToElegeId || {};
 
     // Prefer per_entity_analysis (has elege_person_id and individual sentiment)
     if (perEntity.length > 0) {
-        return perEntity.map((ea: any) => ({
-            // Use elege_person_id (numeric) for photo loading, NOT entity_id (Supabase UUID)
-            id: ea.elege_person_id ? String(ea.elege_person_id) : (elegePersonId ? String(elegePersonId) : null),
-            name: ea.entity_name || ea.entity || '',
-            sentiment: ea.sentiment || mention.sentiment || 'neutral',
-        })).filter((e: any) => e.name);
+        return perEntity.map((ea: any) => {
+            const name = ea.entity_name || ea.entity || '';
+            return {
+                // Use elege_person_id (numeric) for photo loading, NOT entity_id (Supabase UUID)
+                id: ea.elege_person_id ? String(ea.elege_person_id)
+                    : (elegePersonId ? String(elegePersonId)
+                        : (lookup[name.toLowerCase()] || null)),
+                name,
+                sentiment: ea.sentiment || mention.sentiment || 'neutral',
+            };
+        }).filter((e: any) => e.name);
     }
 
     // Fallback: detected_entities (names only, use overall sentiment)
-    // Use elege_person_id from classification_metadata root if available
     if (detectedEntities.length > 0) {
         return detectedEntities.map((name: string, idx: number) => ({
-            // Only the first entity gets the person ID (since ElegeSyncService syncs per person)
-            id: idx === 0 && elegePersonId ? String(elegePersonId) : null,
+            id: (idx === 0 && elegePersonId) ? String(elegePersonId) : (lookup[name.toLowerCase()] || null),
             name,
             sentiment: mention.sentiment || 'neutral',
         }));
@@ -395,7 +399,34 @@ export const IntelligenceFeed: React.FC = () => {
     const [transcriptOpen, setTranscriptOpen] = useState(false);
     const [isEscalationModalOpen, setIsEscalationModalOpen] = useState(false);
     const [entityMap, setEntityMap] = useState<Record<string, string>>({});
-    const [keywordFilter, setKeywordFilter] = useState('');
+
+    // Build name → elegePersonId lookup from all mentions that have it (TV/Radio)
+    // so portal/social mentions can also resolve photos by entity name
+    const nameToElegeId = useMemo(() => {
+        const map: Record<string, string> = {};
+        mentions.forEach(m => {
+            const cm = m.classification_metadata || {} as any;
+            const rootId = cm.elege_person_id;
+            const pea = cm.per_entity_analysis || [];
+            pea.forEach((ea: any) => {
+                const name = (ea.entity_name || ea.entity || '').toLowerCase().trim();
+                const id = ea.elege_person_id || rootId;
+                if (name && id) map[name] = String(id);
+            });
+            // Also use person_name at root level
+            const pName = (cm.person_name || '').toLowerCase().trim();
+            if (pName && rootId) map[pName] = String(rootId);
+        });
+        return map;
+    }, [mentions]);
+    const [feedFilters, setFeedFilters] = useState<{ type: 'keyword' | 'person' | 'source' | 'text'; value: string }[]>([]);
+    const addFeedFilter = (type: 'keyword' | 'person' | 'source' | 'text', value: string) => {
+        setFeedFilters(prev => {
+            if (prev.some(f => f.type === type && f.value.toLowerCase() === value.toLowerCase())) return prev;
+            return [...prev, { type, value }];
+        });
+    };
+    const removeFeedFilter = (idx: number) => setFeedFilters(prev => prev.filter((_, i) => i !== idx));
     const [keywordSearch, setKeywordSearch] = useState('');
     const [showKeywordSuggestions, setShowKeywordSuggestions] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
@@ -438,12 +469,48 @@ export const IntelligenceFeed: React.FC = () => {
 
         if (keywordSearch) {
             const q = keywordSearch.toLowerCase();
-            const matched = entries.filter(e => e.keyword.includes(q));
-            // Also add a "free text search" option at the top
-            return matched;
+            return entries.filter(e => e.keyword.includes(q));
         }
         return entries.slice(0, 10);
     }, [keywordFrequency, keywordSearch]);
+
+    // Person and Source suggestions extracted from current mentions
+    const personSuggestions = useMemo(() => {
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const freq: Record<string, number> = {};
+        mentions.forEach(m => {
+            const cm = m.classification_metadata || {} as any;
+            const peaNames = (cm.per_entity_analysis || []).map((ea: any) => ea.entity_name || ea.entity || '').filter(Boolean);
+            const detectedNames = cm.detected_entities || [];
+            const personName = cm.person_name;
+            [...peaNames, ...detectedNames, personName].filter(Boolean).forEach((name: string) => {
+                const key = name.trim();
+                // Skip UUIDs and short/numeric-only strings
+                if (!key || UUID_RE.test(key) || key.length < 3 || /^\d+$/.test(key)) return;
+                freq[key] = (freq[key] || 0) + 1;
+            });
+        });
+        const entries = Object.entries(freq).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+        if (keywordSearch) {
+            const q = keywordSearch.toLowerCase();
+            return entries.filter(e => e.name.toLowerCase().includes(q));
+        }
+        return entries.slice(0, 8);
+    }, [mentions, keywordSearch]);
+
+    const sourceSuggestions = useMemo(() => {
+        const freq: Record<string, number> = {};
+        mentions.forEach(m => {
+            const src = (m.source || '').trim();
+            if (src) freq[src] = (freq[src] || 0) + 1;
+        });
+        const entries = Object.entries(freq).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+        if (keywordSearch) {
+            const q = keywordSearch.toLowerCase();
+            return entries.filter(e => e.name.toLowerCase().includes(q));
+        }
+        return entries.slice(0, 8);
+    }, [mentions, keywordSearch]);
 
     // Get sentiment growth for a keyword
     const getSentimentGrowth = (keyword: string): number => {
@@ -674,10 +741,10 @@ export const IntelligenceFeed: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-950 relative">
+        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 relative -mx-6 -mb-6">
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <header className="p-8 pb-4 flex justify-between items-center border-b border-slate-800 bg-slate-950 shrink-0 z-10">
+                <header className="px-6 py-3 flex justify-between items-center border-b border-slate-800 bg-slate-950 shrink-0 z-10">
                     <div>
                         <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                             <TrendingUp className="w-6 h-6 text-primary" />
@@ -697,7 +764,7 @@ export const IntelligenceFeed: React.FC = () => {
                 {/* Feed Tab Switcher */}
                 <div className="px-8 pt-4 pb-0 flex items-center gap-1 border-b border-slate-800 shrink-0 bg-slate-950">
                     <button
-                        onClick={() => { setFeedTab('portais'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('portais'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'portais'
                             ? 'text-sky-400 border-sky-400 bg-sky-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -707,7 +774,7 @@ export const IntelligenceFeed: React.FC = () => {
                         Portais
                     </button>
                     <button
-                        onClick={() => { setFeedTab('social'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('social'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'social'
                             ? 'text-pink-400 border-pink-400 bg-pink-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -717,7 +784,7 @@ export const IntelligenceFeed: React.FC = () => {
                         Redes Sociais
                     </button>
                     <button
-                        onClick={() => { setFeedTab('tv'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('tv'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'tv'
                             ? 'text-amber-400 border-amber-400 bg-amber-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -727,7 +794,7 @@ export const IntelligenceFeed: React.FC = () => {
                         TV
                     </button>
                     <button
-                        onClick={() => { setFeedTab('radio'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('radio'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'radio'
                             ? 'text-teal-400 border-teal-400 bg-teal-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -737,7 +804,7 @@ export const IntelligenceFeed: React.FC = () => {
                         Rádio
                     </button>
                     <button
-                        onClick={() => { setFeedTab('whatsapp'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('whatsapp'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'whatsapp'
                             ? 'text-green-400 border-green-400 bg-green-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -747,7 +814,7 @@ export const IntelligenceFeed: React.FC = () => {
                         WhatsApp
                     </button>
                     <button
-                        onClick={() => { setFeedTab('instagram'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('instagram'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'instagram'
                             ? 'text-fuchsia-400 border-fuchsia-400 bg-fuchsia-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -757,7 +824,7 @@ export const IntelligenceFeed: React.FC = () => {
                         Instagram
                     </button>
                     <button
-                        onClick={() => { setFeedTab('tiktok'); setKeywordFilter(''); }}
+                        onClick={() => { setFeedTab('tiktok'); setFeedFilters([]); }}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${feedTab === 'tiktok'
                             ? 'text-cyan-400 border-cyan-400 bg-cyan-500/5'
                             : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50'
@@ -779,7 +846,7 @@ export const IntelligenceFeed: React.FC = () => {
                         ].map(f => (
                             <button
                                 key={f.id}
-                                onClick={() => { setFilter(f.id); setKeywordFilter(''); }}
+                                onClick={() => { setFilter(f.id); setFeedFilters([]); }}
                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${filter === f.id
                                     ? 'bg-primary/20 text-primary border border-primary/20'
                                     : 'text-slate-400 border border-transparent hover:bg-slate-900 hover:text-white'
@@ -789,53 +856,102 @@ export const IntelligenceFeed: React.FC = () => {
                                 {f.label}
                             </button>
                         ))}
-                        {keywordFilter && (
-                            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                                <Search className="w-3 h-3" />
-                                "{keywordFilter.replace(/^__text:/, '')}"
-                                <button onClick={() => setKeywordFilter('')} className="hover:text-white ml-1"><X className="w-3 h-3" /></button>
-                            </span>
+                        {feedFilters.map((ff, idx) => {
+                            const chipColors: Record<string, string> = {
+                                person: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+                                source: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+                                keyword: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                                text: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+                            };
+                            const chipLabels: Record<string, string> = { person: 'Pessoa', source: 'Veículo', keyword: 'Keyword', text: 'Texto' };
+                            return (
+                                <span key={idx} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${chipColors[ff.type] || chipColors.text}`}>
+                                    <span className="text-[9px] uppercase opacity-70">{chipLabels[ff.type]}:</span>
+                                    {ff.value}
+                                    <button onClick={() => removeFeedFilter(idx)} className="hover:text-white ml-0.5"><X className="w-3 h-3" /></button>
+                                </span>
+                            );
+                        })}
+                        {feedFilters.length > 0 && (
+                            <button onClick={() => setFeedFilters([])} className="text-[10px] text-slate-500 hover:text-white ml-1">Limpar</button>
                         )}
                     </div>
 
-                    {/* Keyword search */}
+                    {/* Multi-filter search */}
                     <div className="relative" ref={searchRef}>
-                        <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-1.5 w-[220px] focus-within:border-primary/50 transition-colors">
+                        <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-1.5 w-[260px] focus-within:border-primary/50 transition-colors">
                             <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                             <input
                                 type="text"
-                                placeholder="Buscar nos feeds..."
+                                placeholder="Pessoa, veículo, keyword..."
                                 value={keywordSearch}
                                 onChange={e => { setKeywordSearch(e.target.value); setShowKeywordSuggestions(true); }}
                                 onFocus={() => setShowKeywordSuggestions(true)}
-                                onKeyDown={e => { if (e.key === 'Enter' && keywordSearch.trim()) { setKeywordFilter(`__text:${keywordSearch.trim()}`); setKeywordSearch(''); setShowKeywordSuggestions(false); } }}
+                                onKeyDown={e => { if (e.key === 'Enter' && keywordSearch.trim()) { addFeedFilter('text', keywordSearch.trim()); setKeywordSearch(''); setShowKeywordSuggestions(false); } }}
                                 className="bg-transparent border-none outline-none text-sm text-white placeholder-slate-500 w-full"
                             />
                             {keywordSearch && (
-                                <button onClick={() => { setKeywordSearch(''); setKeywordFilter(''); }} className="text-slate-500 hover:text-white">
+                                <button onClick={() => setKeywordSearch('')} className="text-slate-500 hover:text-white">
                                     <X className="w-3 h-3" />
                                 </button>
                             )}
                         </div>
-                        {/* Free text search: press Enter to search across all text fields */}
                         {showKeywordSuggestions && (
-                            <div className="absolute top-full mt-1 right-0 w-[280px] bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 max-h-[300px] overflow-y-auto">
+                            <div className="absolute top-full mt-1 right-0 w-[320px] bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 max-h-[400px] overflow-y-auto">
+                                {/* Free text search */}
                                 {keywordSearch && (
                                     <button
-                                        onClick={() => { setKeywordFilter(`__text:${keywordSearch}`); setKeywordSearch(''); setShowKeywordSuggestions(false); }}
+                                        onClick={() => { addFeedFilter('text', keywordSearch); setKeywordSearch(''); setShowKeywordSuggestions(false); }}
                                         className="w-full text-left px-3 py-2.5 hover:bg-slate-800 transition-colors flex items-center gap-2 border-b border-slate-700/50"
                                     >
                                         <Search className="w-3.5 h-3.5 text-primary shrink-0" />
                                         <span className="text-sm text-primary">Buscar "{keywordSearch}" em tudo</span>
                                     </button>
                                 )}
+                                {/* Person suggestions */}
+                                {personSuggestions.length > 0 && (
+                                    <>
+                                        <div className="p-2 text-[10px] font-bold text-indigo-400 uppercase tracking-wider px-3 flex items-center gap-1.5">
+                                            <Users className="w-3 h-3" /> Pessoa Citada
+                                        </div>
+                                        {personSuggestions.slice(0, 5).map(s => (
+                                            <button
+                                                key={`p-${s.name}`}
+                                                onClick={() => { addFeedFilter('person', s.name); setKeywordSearch(''); setShowKeywordSuggestions(false); }}
+                                                className="w-full text-left px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between gap-2"
+                                            >
+                                                <span className="text-sm text-white truncate">{s.name}</span>
+                                                <span className="text-[10px] text-slate-500">{s.count}x</span>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                                {/* Source/Vehicle suggestions */}
+                                {sourceSuggestions.length > 0 && (
+                                    <>
+                                        <div className="p-2 text-[10px] font-bold text-teal-400 uppercase tracking-wider px-3 flex items-center gap-1.5 border-t border-slate-700/50">
+                                            <Tv className="w-3 h-3" /> Veículo
+                                        </div>
+                                        {sourceSuggestions.slice(0, 5).map(s => (
+                                            <button
+                                                key={`s-${s.name}`}
+                                                onClick={() => { addFeedFilter('source', s.name); setKeywordSearch(''); setShowKeywordSuggestions(false); }}
+                                                className="w-full text-left px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between gap-2"
+                                            >
+                                                <span className="text-sm text-white truncate">{s.name}</span>
+                                                <span className="text-[10px] text-slate-500">{s.count}x</span>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                                {/* Keyword suggestions */}
                                 {keywordSuggestions.length > 0 && (
-                                    <div className="p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3">Palavras-chave</div>
+                                    <div className="p-2 text-[10px] font-bold text-amber-400 uppercase tracking-wider px-3 border-t border-slate-700/50">Palavras-chave</div>
                                 )}
                                 {keywordSuggestions.map(s => (
                                     <button
                                         key={s.keyword}
-                                        onClick={() => { setKeywordFilter(s.keyword); setKeywordSearch(''); setShowKeywordSuggestions(false); }}
+                                        onClick={() => { addFeedFilter('keyword', s.keyword); setKeywordSearch(''); setShowKeywordSuggestions(false); }}
                                         className="w-full text-left px-3 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between gap-2"
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
@@ -877,16 +993,34 @@ export const IntelligenceFeed: React.FC = () => {
 
                     {mentions
                         .filter(m => {
-                            if (!keywordFilter) return true;
-                            // Always do inclusive text search: title, content, summary, source AND keywords
-                            const q = keywordFilter.replace(/^__text:/, '').toLowerCase();
-                            return (
-                                (m.title || '').toLowerCase().includes(q) ||
-                                (m.content || m.text || '').toLowerCase().includes(q) ||
-                                (m.summary || '').toLowerCase().includes(q) ||
-                                (m.source || '').toLowerCase().includes(q) ||
-                                safeKeywords(m.classification_metadata?.keywords || []).some((kw: string) => kw.toLowerCase().includes(q))
-                            );
+                            if (feedFilters.length === 0) return true;
+                            // AND logic: every active filter must match
+                            return feedFilters.every(ff => {
+                                const q = ff.value.toLowerCase();
+                                if (ff.type === 'person') {
+                                    const cm = m.classification_metadata || {} as any;
+                                    const peaNames = (cm.per_entity_analysis || []).map((ea: any) => (ea.entity_name || ea.entity || '').toLowerCase());
+                                    const detected = (cm.detected_entities || []).map((e: string) => e.toLowerCase());
+                                    const pName = (cm.person_name || '').toLowerCase();
+                                    return peaNames.some((n: string) => n.includes(q) || q.includes(n)) ||
+                                        detected.some((n: string) => n.includes(q) || q.includes(n)) ||
+                                        (pName && (pName.includes(q) || q.includes(pName)));
+                                }
+                                if (ff.type === 'source') {
+                                    return (m.source || '').toLowerCase().includes(q);
+                                }
+                                if (ff.type === 'keyword') {
+                                    return safeKeywords(m.classification_metadata?.keywords || []).some((kw: string) => kw.toLowerCase().includes(q));
+                                }
+                                // text: search across all fields
+                                return (
+                                    (m.title || '').toLowerCase().includes(q) ||
+                                    (m.content || m.text || '').toLowerCase().includes(q) ||
+                                    (m.summary || '').toLowerCase().includes(q) ||
+                                    (m.source || '').toLowerCase().includes(q) ||
+                                    safeKeywords(m.classification_metadata?.keywords || []).some((kw: string) => kw.toLowerCase().includes(q))
+                                );
+                            });
                         })
                         .filter(m => {
                             if ((feedTab === 'tv' || feedTab === 'radio') && selectedMention) {
@@ -898,8 +1032,7 @@ export const IntelligenceFeed: React.FC = () => {
                             <article
                                 key={mention.id}
                                 onClick={() => setSelectedMention(mention)}
-                                className={`relative bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-primary/30 hover:bg-slate-900 group ${selectedMention?.id === mention.id ? 'ring-2 ring-primary border-transparent' : ''}`}
-                                style={{ isolation: 'isolate' }}
+                                className={`relative bg-slate-900/50 border border-slate-800 rounded-xl cursor-pointer transition-all hover:border-primary/30 hover:bg-slate-900 group ${selectedMention?.id === mention.id ? 'ring-2 ring-primary border-transparent' : ''}`}
                             >
                                 {/* Media Card for TV/Radio */}
                                 {feedTab === 'tv' && (
@@ -940,7 +1073,7 @@ export const IntelligenceFeed: React.FC = () => {
 
                                         {/* Person Avatars — bottom right, with sentiment border + photos */}
                                         <PersonBubbleGroup
-                                            entities={extractEntityBubbles(mention)}
+                                            entities={extractEntityBubbles(mention, nameToElegeId)}
                                             size={36}
                                             maxVisible={3}
                                             position="bottom-right"
@@ -983,7 +1116,7 @@ export const IntelligenceFeed: React.FC = () => {
 
                                         {/* Person Avatars — right side, with photos */}
                                         <PersonBubbleGroup
-                                            entities={extractEntityBubbles(mention)}
+                                            entities={extractEntityBubbles(mention, nameToElegeId)}
                                             size={32}
                                             maxVisible={3}
                                             position="right"
@@ -1034,11 +1167,11 @@ export const IntelligenceFeed: React.FC = () => {
                                                 {/* Keyword badges — shared keywords highlighted in amber */}
                                                 {safeKeywords(mention.classification_metadata?.keywords || []).slice(0, 5).map((kw: string) => {
                                                     const shared = isSharedKeyword(kw);
-                                                    const isFiltered = keywordFilter.toLowerCase() === kw.toLowerCase();
+                                                    const isFiltered = feedFilters.some(f => f.type === 'keyword' && f.value.toLowerCase() === kw.toLowerCase());
                                                     return (
                                                         <button
                                                             key={kw}
-                                                            onClick={(e) => { e.stopPropagation(); setKeywordFilter(isFiltered ? '' : kw); }}
+                                                            onClick={(e) => { e.stopPropagation(); if (isFiltered) { setFeedFilters(prev => prev.filter(f => !(f.type === 'keyword' && f.value.toLowerCase() === kw.toLowerCase()))); } else { addFeedFilter('keyword', kw); } }}
                                                             className={`text-[10px] font-semibold px-2 py-0.5 rounded border transition-colors cursor-pointer ${isFiltered
                                                                 ? 'bg-primary/20 text-primary border-primary/30 ring-1 ring-primary/30'
                                                                 : shared
@@ -1054,7 +1187,7 @@ export const IntelligenceFeed: React.FC = () => {
 
                                                 {/* Monitored Entities — Photo Bubbles */}
                                                 {(() => {
-                                                    const entityBubbles = extractEntityBubbles(mention);
+                                                    const entityBubbles = extractEntityBubbles(mention, nameToElegeId);
                                                     if (entityBubbles.length === 0) {
                                                         // Fallback: show old-style entity badges from monitored_entities
                                                         return mention.classification_metadata?.detected_entities?.map((entityId: string) => (
@@ -1138,7 +1271,7 @@ export const IntelligenceFeed: React.FC = () => {
                             const assets = cm.assets || [];
                             const postId = cm.elege_post_id;
                             const mediaAsset = assets.find((a: any) => a.kind === 'audio' || (a.media_type && a.media_type.startsWith('audio'))) || assets[0];
-                            const timelineMarks: { position: number; sentiment: string; frameId: number }[] = cm.timeline_marks || [];
+                            const timelineMarks: { position: number; sentiment: string; frameId: number; entityName?: string }[] = cm.timeline_marks || [];
                             const maxPosition = cm.video_duration || cm.audio_duration || (timelineMarks.length > 0 ? Math.max(...timelineMarks.map((m: any) => m.position)) : 300);
                             const transcript = selectedMention.content || selectedMention.summary || '';
                             const sentences = transcript.split(/[.!?]\s+/).filter((s: string) => s.trim().length > 5);
@@ -1181,7 +1314,7 @@ export const IntelligenceFeed: React.FC = () => {
                                                             key={idx}
                                                             className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ${color} shadow-md hover:scale-150 transition-transform cursor-pointer z-10 border border-white/20`}
                                                             style={{ left: `${pct}%` }}
-                                                            title={`${mark.position}s — ${mark.sentiment}`}
+                                                            title={`${mark.entityName ? mark.entityName + ' — ' : ''}${Math.floor(mark.position / 60)}:${String(Math.floor(mark.position % 60)).padStart(2, '0')} — ${mark.sentiment === 'positive' ? 'Positivo' : mark.sentiment === 'negative' ? 'Negativo' : 'Neutro'}`}
                                                             onClick={() => {
                                                                 if (audioRef.current) {
                                                                     audioRef.current.currentTime = mark.position;
@@ -1317,7 +1450,7 @@ export const IntelligenceFeed: React.FC = () => {
                             const postId = cm.elege_post_id;
                             const videoAsset = assets.find((a: any) => a.kind === 'video' || (a.media_type && a.media_type.startsWith('video')));
                             const imageAssets = assets.filter((a: any) => a.kind === 'image' || (a.media_type && a.media_type.startsWith('image')));
-                            const timelineMarks: { position: number; sentiment: string; frameId: number }[] = cm.timeline_marks || [];
+                            const timelineMarks: { position: number; sentiment: string; frameId: number; entityName?: string }[] = cm.timeline_marks || [];
                             const maxPosition = cm.video_duration || (timelineMarks.length > 0 ? Math.max(...timelineMarks.map((m: any) => m.position)) : 300);
                             const transcript = selectedMention.content || selectedMention.summary || '';
                             const sentences = transcript.split(/[.!?]\s+/).filter((s: string) => s.trim().length > 5);
@@ -1368,7 +1501,7 @@ export const IntelligenceFeed: React.FC = () => {
                                                             key={idx}
                                                             className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ${color} shadow-md hover:scale-150 transition-transform cursor-pointer z-10 border border-white/20`}
                                                             style={{ left: `${pct}%` }}
-                                                            title={`${mark.position}s — ${mark.sentiment}`}
+                                                            title={`${mark.entityName ? mark.entityName + ' — ' : ''}${Math.floor(mark.position / 60)}:${String(Math.floor(mark.position % 60)).padStart(2, '0')} — ${mark.sentiment === 'positive' ? 'Positivo' : mark.sentiment === 'negative' ? 'Negativo' : 'Neutro'}`}
                                                             onClick={() => {
                                                                 if (videoRef.current) {
                                                                     videoRef.current.currentTime = mark.position;
@@ -1781,7 +1914,7 @@ export const IntelligenceFeed: React.FC = () => {
 
                             {/* Entities — Photo Bubbles */}
                             {(() => {
-                                const entityBubbles = extractEntityBubbles(selectedMention);
+                                const entityBubbles = extractEntityBubbles(selectedMention, nameToElegeId);
                                 if (entityBubbles.length > 0) {
                                     return (
                                         <div className="px-4 pb-2">
@@ -1875,7 +2008,7 @@ export const IntelligenceFeed: React.FC = () => {
 
                             {/* Entities — Photo Bubbles */}
                             {(() => {
-                                const entityBubbles = extractEntityBubbles(selectedMention);
+                                const entityBubbles = extractEntityBubbles(selectedMention, nameToElegeId);
                                 if (entityBubbles.length > 0) {
                                     return (
                                         <div className="px-4 pb-2">
@@ -1928,7 +2061,7 @@ export const IntelligenceFeed: React.FC = () => {
                     <div className="p-6 space-y-8 flex-1">
                         {/* Monitored Entities / Photo Bubbles Highlight */}
                         {(() => {
-                            const entityBubbles = extractEntityBubbles(selectedMention);
+                            const entityBubbles = extractEntityBubbles(selectedMention, nameToElegeId);
                             if (entityBubbles.length > 0) {
                                 return (
                                     <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/30">
@@ -2203,7 +2336,7 @@ export const IntelligenceFeed: React.FC = () => {
                                             keyword={kw}
                                             isShared={isSharedKeyword(kw)}
                                             sentimentGrowth={getSentimentGrowth(kw)}
-                                            onFilterClick={(keyword) => { setKeywordFilter(keyword); setSelectedMention(null); }}
+                                            onFilterClick={(keyword) => { addFeedFilter('keyword', keyword); setSelectedMention(null); }}
                                         />
                                     ))}
                                 </div>

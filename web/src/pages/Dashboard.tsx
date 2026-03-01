@@ -6,12 +6,14 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import {
     Activity, TrendingUp, TrendingDown, Users, AlertOctagon, ArrowUpRight, ArrowDownRight,
     MessageSquare, RefreshCw, Shield, Newspaper, Eye, BarChart3, Zap, MapPin, Layers, Trash2,
-    X, Clock, ShieldAlert, Loader2, ChevronDown, ChevronUp, Archive, ExternalLink
+    X, Clock, ShieldAlert, Loader2, ChevronDown, ChevronUp, Archive, ExternalLink,
+    Globe, Tv, Radio, Hash
 } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import { WordCloudChart } from '@/components/dashboard/WordCloud';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { supabase } from '@/lib/supabase';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format, subDays, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useUserActivations } from '@/hooks/useUserActivations';
 import { CrisisEscalationModal } from '@/components/CrisisEscalationModal';
@@ -55,6 +57,8 @@ export const Dashboard: React.FC = () => {
     const [selectedWord, setSelectedWord] = useState<string | null>(null);
     const [wordFeedItems, setWordFeedItems] = useState<any[]>([]);
     const [wordFeedLoading, setWordFeedLoading] = useState(false);
+    const [wordSourceCounts, setWordSourceCounts] = useState<{ source: string; count: number }[]>([]);
+    const [wordTrendData, setWordTrendData] = useState<{ date: string; total: number; positive: number; negative: number; neutral: number }[]>([]);
 
     // Pagination states for alerts and feed
     const [alertsTotal, setAlertsTotal] = useState(0);
@@ -69,17 +73,47 @@ export const Dashboard: React.FC = () => {
     const [highlightedAlert, setHighlightedAlert] = useState<any | null>(null);
     const navigate = useNavigate();
 
+    const getSourceIconForPanel = (source: string) => {
+        const s = (source || '').toLowerCase();
+        if (s.includes('twitter') || s === 'x') return <MessageSquare className="w-4 h-4" />;
+        if (s.includes('instagram')) return <Hash className="w-4 h-4" />;
+        if (s.includes('facebook')) return <Users className="w-4 h-4" />;
+        if (s.includes('tiktok')) return <Eye className="w-4 h-4" />;
+        if (s.includes('tv') || s.includes('televisão')) return <Tv className="w-4 h-4" />;
+        if (s.includes('radio') || s.includes('rádio')) return <Radio className="w-4 h-4" />;
+        if (s.includes('portal') || s.includes('web') || s.includes('blog') || s.includes('site') || s.includes('g1') || s.includes('uol') || s.includes('folha') || s.includes('globo')) return <Newspaper className="w-4 h-4" />;
+        return <Globe className="w-4 h-4" />;
+    };
+
+    const getSourceColor = (source: string) => {
+        const s = (source || '').toLowerCase();
+        if (s.includes('twitter') || s === 'x') return { bg: 'bg-sky-500/10', border: 'border-sky-500/30', text: 'text-sky-400' };
+        if (s.includes('instagram')) return { bg: 'bg-pink-500/10', border: 'border-pink-500/30', text: 'text-pink-400' };
+        if (s.includes('facebook')) return { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' };
+        if (s.includes('tiktok')) return { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400' };
+        if (s.includes('tv') || s.includes('televisão')) return { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400' };
+        if (s.includes('radio') || s.includes('rádio')) return { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400' };
+        if (s.includes('portal') || s.includes('web') || s.includes('blog') || s.includes('site') || s.includes('g1') || s.includes('uol') || s.includes('folha') || s.includes('globo')) return { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400' };
+        return { bg: 'bg-slate-500/10', border: 'border-slate-500/30', text: 'text-slate-400' };
+    };
+
     const handleWordClick = useCallback(async (word: string) => {
         setSelectedWord(word);
         setWordFeedLoading(true);
+        setWordSourceCounts([]);
+        setWordTrendData([]);
         try {
             const filterIds = selectedActivationId ? [selectedActivationId] : allActivationIds;
+            const now = new Date();
+            const sevenDaysAgo = subDays(now, 7).toISOString();
 
+            // Fetch last 7 days of data for trend + source analysis
             let query = supabase
                 .from('intelligence_feed')
-                .select('id, text, title, summary, content, source, sentiment, risk_score, created_at, status, classification_metadata, keywords')
+                .select('*')
+                .gte('created_at', sevenDaysAgo)
                 .order('created_at', { ascending: false })
-                .limit(50);
+                .limit(500);
 
             if (filterIds.length === 1) {
                 query = query.eq('activation_id', filterIds[0]);
@@ -87,10 +121,9 @@ export const Dashboard: React.FC = () => {
                 query = query.in('activation_id', filterIds);
             }
 
-            // Fetch all recent items and filter client-side for reliable case-insensitive keyword matching
             const { data } = await query;
             const q = word.toLowerCase();
-            const filtered = (data || []).filter((item: any) => {
+            const allMatching = (data || []).filter((item: any) => {
                 const kws = Array.isArray(item.keywords) ? item.keywords : [];
                 if (kws.some((kw: string) => typeof kw === 'string' && kw.toLowerCase().includes(q))) return true;
                 if ((item.title || '').toLowerCase().includes(q)) return true;
@@ -98,10 +131,45 @@ export const Dashboard: React.FC = () => {
                 if ((item.content || item.text || '').toLowerCase().includes(q)) return true;
                 return false;
             });
-            setWordFeedItems(filtered);
+
+            // --- Source counts (last 24h) ---
+            const h24ago = subDays(now, 1);
+            const last24h = allMatching.filter(item => new Date(item.created_at) >= h24ago);
+            const srcMap: Record<string, number> = {};
+            last24h.forEach(item => {
+                const src = (item.source || 'Desconhecido').trim();
+                srcMap[src] = (srcMap[src] || 0) + 1;
+            });
+            const sortedSources = Object.entries(srcMap)
+                .map(([source, count]) => ({ source, count }))
+                .sort((a, b) => b.count - a.count);
+            setWordSourceCounts(sortedSources);
+
+            // --- 7-day trend data (total + positive + negative + neutral) ---
+            const trendMap: Record<string, { total: number; positive: number; negative: number; neutral: number }> = {};
+            for (let i = 6; i >= 0; i--) {
+                const day = startOfDay(subDays(now, i));
+                trendMap[format(day, 'dd/MM')] = { total: 0, positive: 0, negative: 0, neutral: 0 };
+            }
+            allMatching.forEach(item => {
+                const dayKey = format(new Date(item.created_at), 'dd/MM');
+                if (dayKey in trendMap) {
+                    trendMap[dayKey].total += 1;
+                    if (item.sentiment === 'positive') trendMap[dayKey].positive += 1;
+                    else if (item.sentiment === 'negative') trendMap[dayKey].negative += 1;
+                    else if (item.sentiment === 'neutral') trendMap[dayKey].neutral += 1;
+                }
+            });
+            const trendArr = Object.entries(trendMap).map(([date, vals]) => ({ date, ...vals }));
+            setWordTrendData(trendArr);
+
+            // Feed items (most recent 50)
+            setWordFeedItems(allMatching.slice(0, 50));
         } catch (err) {
             console.error('[WordFeed] Error:', err);
             setWordFeedItems([]);
+            setWordSourceCounts([]);
+            setWordTrendData([]);
         } finally {
             setWordFeedLoading(false);
         }
@@ -725,14 +793,27 @@ export const Dashboard: React.FC = () => {
                                 {s.recent_alerts.length > 0 && (
                                     <button
                                         onClick={async () => {
-                                            const ids = s.recent_alerts.map((a: any) => a.id);
-                                            const { error } = await supabase.from('intelligence_feed').update({ status: 'archived' }).in('id', ids);
+                                            // Archive ALL alerts matching the criteria in the DB, not just the loaded page
+                                            const filterIds = selectedActivationId ? [selectedActivationId] : allActivationIds;
+                                            const applyBulkFilter = (query: any) => {
+                                                return filterIds.length === 1
+                                                    ? query.eq('activation_id', filterIds[0])
+                                                    : query.in('activation_id', filterIds);
+                                            };
+                                            const { error } = await applyBulkFilter(
+                                                supabase.from('intelligence_feed')
+                                                    .update({ status: 'archived' })
+                                                    .or('risk_score.gte.80,and(sentiment.eq.negative,risk_score.gte.60)')
+                                                    .neq('status', 'archived')
+                                            );
                                             if (error) {
                                                 console.error('[Limpar Todos] Archive failed:', error);
                                                 alert(`Erro ao arquivar alertas: ${error.message}`);
                                                 return;
                                             }
                                             setStats(prev => prev ? { ...prev, recent_alerts: [] } : prev);
+                                            setAlertsTotal(0);
+                                            setAlertsHasMore(false);
                                             setHighlightedAlert(null);
                                             setExpandedAlertId(null);
                                         }}
@@ -1192,80 +1273,174 @@ export const Dashboard: React.FC = () => {
                             </button>
                         </div>
 
-                        {/* Feed Items */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {wordFeedLoading && (
                                 <div className="flex items-center justify-center py-12">
                                     <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
                                 </div>
                             )}
 
-                            {!wordFeedLoading && wordFeedItems.length === 0 && (
-                                <div className="text-center py-12 text-slate-500">
-                                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                    <p>Nenhuma menção encontrada para este termo.</p>
-                                </div>
-                            )}
+                            {!wordFeedLoading && (
+                                <>
+                                    {/* === Source Cards (24h) === */}
+                                    {wordSourceCounts.length > 0 && (
+                                        <div>
+                                            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                <Newspaper className="w-3.5 h-3.5" />
+                                                Veículos — Últimas 24h
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {wordSourceCounts.map(({ source, count }) => {
+                                                    const colors = getSourceColor(source);
+                                                    return (
+                                                        <div
+                                                            key={source}
+                                                            className={`flex items-center gap-2.5 p-2.5 rounded-lg border ${colors.border} ${colors.bg} transition-all hover:scale-[1.02]`}
+                                                        >
+                                                            <div className={`p-1.5 rounded-md bg-slate-950/60 ${colors.text}`}>
+                                                                {getSourceIconForPanel(source)}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-xs font-semibold truncate capitalize ${colors.text}`}>
+                                                                    {source}
+                                                                </p>
+                                                                <p className="text-lg font-mono font-bold text-white leading-none mt-0.5">
+                                                                    {count}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
 
-                            {!wordFeedLoading && wordFeedItems.map((item: any) => (
-                                <article
-                                    key={item.id}
-                                    className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 hover:border-primary/30 transition-colors"
-                                >
-                                    <div className="flex justify-between items-start gap-3">
-                                        <div className="flex-1 space-y-2 min-w-0">
-                                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-medium text-slate-400 capitalize">
-                                                    {item.source || 'Desconhecido'}
+                                    {/* === 7-Day Trend Line Chart === */}
+                                    {wordTrendData.length > 0 && (
+                                        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                                            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                                <BarChart3 className="w-3.5 h-3.5" />
+                                                Evolução — Últimos 7 dias
+                                            </h3>
+                                            <div className="h-[180px]">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={wordTrendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={{ stroke: '#334155' }} tickLine={false} />
+                                                        <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                                        <RechartsTooltip
+                                                            contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                                                            labelStyle={{ color: '#94a3b8' }}
+                                                            formatter={(value: any, name: any) => {
+                                                                const labels: Record<string, string> = { total: 'Total', positive: 'Positivas', negative: 'Negativas', neutral: 'Neutras' };
+                                                                return [value, labels[name] || name];
+                                                            }}
+                                                        />
+                                                        <Line type="monotone" dataKey="total" name="Total" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3, fill: '#6366f1' }} activeDot={{ r: 5, fill: '#818cf8' }} />
+                                                        <Line type="monotone" dataKey="positive" name="Positivas" stroke="#22c55e" strokeWidth={2} dot={{ r: 2.5, fill: '#22c55e' }} activeDot={{ r: 4, fill: '#4ade80' }} />
+                                                        <Line type="monotone" dataKey="negative" name="Negativas" stroke="#ef4444" strokeWidth={2} dot={{ r: 2.5, fill: '#ef4444' }} activeDot={{ r: 4, fill: '#f87171' }} />
+                                                        <Line type="monotone" dataKey="neutral" name="Neutras" stroke="#64748b" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 2, fill: '#64748b' }} activeDot={{ r: 4, fill: '#94a3b8' }} />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            {/* Legend */}
+                                            <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-slate-800">
+                                                <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                                    <span className="w-3 h-0.5 rounded bg-indigo-500 inline-block"></span> Total
                                                 </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR })}
+                                                <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                                    <span className="w-3 h-0.5 rounded bg-green-500 inline-block"></span> Positivas
+                                                </span>
+                                                <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                                    <span className="w-3 h-0.5 rounded bg-red-500 inline-block"></span> Negativas
+                                                </span>
+                                                <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                                    <span className="w-3 h-0.5 rounded bg-slate-500 inline-block"></span> Neutras
                                                 </span>
                                             </div>
+                                        </div>
+                                    )}
 
-                                            <p className="text-slate-200 text-sm leading-relaxed line-clamp-3">
-                                                {item.content || item.text || item.summary || item.title}
-                                            </p>
+                                    {/* === Feed Items === */}
+                                    {wordFeedItems.length === 0 && (
+                                        <div className="text-center py-8 text-slate-500">
+                                            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                            <p>Nenhuma menção encontrada para este termo.</p>
+                                        </div>
+                                    )}
 
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${item.sentiment === 'negative' ? 'text-red-400 border-red-900 bg-red-950/30' :
-                                                    item.sentiment === 'positive' ? 'text-emerald-400 border-emerald-900 bg-emerald-950/30' :
-                                                        'text-slate-400 border-slate-700 bg-slate-800/30'
-                                                    }`}>
-                                                    {item.sentiment === 'negative' ? 'Negativo' : item.sentiment === 'positive' ? 'Positivo' : 'Neutro'}
-                                                </span>
-
-                                                {item.status === 'escalated' && (
-                                                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded border text-red-400 border-red-500/30 bg-red-500/10 flex items-center gap-1">
-                                                        <ShieldAlert className="w-3 h-3" />
-                                                        Escalado
-                                                    </span>
-                                                )}
-
-                                                {(item.classification_metadata?.keywords || item.keywords || []).slice(0, 3).map((kw: string) => (
-                                                    <span
-                                                        key={kw}
-                                                        className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${kw.toLowerCase() === selectedWord?.toLowerCase()
-                                                            ? 'bg-primary/20 text-primary border-primary/30'
-                                                            : 'text-slate-400 border-slate-700 bg-slate-800/30'
-                                                            }`}
+                                    {wordFeedItems.length > 0 && (
+                                        <div>
+                                            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                <MessageSquare className="w-3.5 h-3.5" />
+                                                Menções recentes
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {wordFeedItems.map((item: any) => (
+                                                    <article
+                                                        key={item.id}
+                                                        className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 hover:border-primary/30 transition-colors"
                                                     >
-                                                        #{kw}
-                                                    </span>
+                                                        <div className="flex justify-between items-start gap-3">
+                                                            <div className="flex-1 space-y-2 min-w-0">
+                                                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                    <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-medium text-slate-400 capitalize">
+                                                                        {item.source || 'Desconhecido'}
+                                                                    </span>
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Clock className="w-3 h-3" />
+                                                                        {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ptBR })}
+                                                                    </span>
+                                                                </div>
+
+                                                                <p className="text-slate-200 text-sm leading-relaxed line-clamp-3">
+                                                                    {item.content || item.text || item.summary || item.title}
+                                                                </p>
+
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${item.sentiment === 'negative' ? 'text-red-400 border-red-900 bg-red-950/30' :
+                                                                        item.sentiment === 'positive' ? 'text-emerald-400 border-emerald-900 bg-emerald-950/30' :
+                                                                            'text-slate-400 border-slate-700 bg-slate-800/30'
+                                                                        }`}>
+                                                                        {item.sentiment === 'negative' ? 'Negativo' : item.sentiment === 'positive' ? 'Positivo' : 'Neutro'}
+                                                                    </span>
+
+                                                                    {item.status === 'escalated' && (
+                                                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded border text-red-400 border-red-500/30 bg-red-500/10 flex items-center gap-1">
+                                                                            <ShieldAlert className="w-3 h-3" />
+                                                                            Escalado
+                                                                        </span>
+                                                                    )}
+
+                                                                    {(item.classification_metadata?.keywords || item.keywords || []).slice(0, 3).map((kw: string) => (
+                                                                        <span
+                                                                            key={kw}
+                                                                            className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${kw.toLowerCase() === selectedWord?.toLowerCase()
+                                                                                ? 'bg-primary/20 text-primary border-primary/30'
+                                                                                : 'text-slate-400 border-slate-700 bg-slate-800/30'
+                                                                                }`}
+                                                                        >
+                                                                            #{kw}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className={`flex flex-col items-center justify-center w-9 h-9 rounded-lg border font-bold text-xs shrink-0 ${item.risk_score >= 70 ? 'text-red-400 border-red-900 bg-red-950/30' :
+                                                                item.risk_score >= 40 ? 'text-amber-400 border-amber-900 bg-amber-950/30' :
+                                                                    'text-emerald-400 border-emerald-900 bg-emerald-950/30'
+                                                                }`}>
+                                                                {item.risk_score}
+                                                            </div>
+                                                        </div>
+                                                    </article>
                                                 ))}
                                             </div>
                                         </div>
-
-                                        <div className={`flex flex-col items-center justify-center w-9 h-9 rounded-lg border font-bold text-xs shrink-0 ${item.risk_score >= 70 ? 'text-red-400 border-red-900 bg-red-950/30' :
-                                            item.risk_score >= 40 ? 'text-amber-400 border-amber-900 bg-amber-950/30' :
-                                                'text-emerald-400 border-emerald-900 bg-emerald-950/30'
-                                            }`}>
-                                            {item.risk_score}
-                                        </div>
-                                    </div>
-                                </article>
-                            ))}
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

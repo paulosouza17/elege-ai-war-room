@@ -20,16 +20,7 @@ export const Header: React.FC = () => {
 
     return (
         <header className="h-16 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-6 fixed top-0 left-64 right-0 z-10 transition-all">
-            <div className="flex items-center gap-4 w-96">
-                <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                        type="text"
-                        placeholder="Buscar menções, entidades ou alertas..."
-                        className="w-full bg-slate-800 border-none rounded-md py-2 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-primary focus:outline-none"
-                    />
-                </div>
-            </div>
+            <div></div>
 
             <div className="flex items-center gap-6">
                 <button className="relative text-slate-400 hover:text-white transition-colors">

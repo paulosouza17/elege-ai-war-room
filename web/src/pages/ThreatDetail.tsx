@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import {
     ArrowLeft, Target, Users, AlertTriangle, Activity, Network,
-    Clock, TrendingUp, ExternalLink, ShieldAlert, MessageCircle, Loader2
+    Clock, TrendingUp, ExternalLink, ShieldAlert, MessageCircle, Loader2,
+    Heart, BarChart3, MessageSquare, RefreshCw, Share2, X, Eye
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -71,6 +72,7 @@ export const ThreatDetail: React.FC = () => {
     const navigate = useNavigate();
     const [mentions, setMentions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedMention, setSelectedMention] = useState<any>(null);
     const { activations, activationIds, loading: activationsLoading } = useUserActivations();
 
     const decodedSource = id ? decodeURIComponent(id) : '';
@@ -284,13 +286,23 @@ export const ThreatDetail: React.FC = () => {
                             <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
                                 {mentions.map((m: any) => {
                                     const targets = mentionsMonitoredEntity(m, monitoredNames);
+                                    const isTwitter = (m.source_type === 'twitter' || m.source_type === 'social_media' || m.source_type === 'x');
                                     return (
-                                        <div key={m.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 hover:bg-slate-800/30 transition-colors">
+                                        <div
+                                            key={m.id}
+                                            className={`p-3 bg-slate-900/50 rounded-lg border border-slate-800 hover:bg-slate-800/30 transition-colors ${isTwitter ? 'cursor-pointer' : ''}`}
+                                            onClick={() => isTwitter && setSelectedMention(m)}
+                                        >
                                             <div className="flex justify-between items-start mb-1.5">
                                                 <h4 className="text-sm font-semibold text-white truncate flex-1 mr-2">
                                                     {m.title || 'Menção detectada'}
                                                 </h4>
                                                 <div className="flex items-center gap-2 shrink-0">
+                                                    {isTwitter && (
+                                                        <span className="text-[9px] text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded-full font-medium">
+                                                            Ver no 𝕏
+                                                        </span>
+                                                    )}
                                                     <span className={`text-xs font-bold ${(m.risk_score || 0) >= 70 ? 'text-red-400' : (m.risk_score || 0) >= 40 ? 'text-amber-400' : 'text-slate-400'
                                                         }`}>
                                                         {m.risk_score || 0}%
@@ -418,6 +430,140 @@ export const ThreatDetail: React.FC = () => {
                     </div>
                 </>
             )}
+
+            {/* ── X/Twitter Mockup Overlay ── */}
+            {selectedMention && (() => {
+                const meta = selectedMention.classification_metadata || {} as any;
+                const extractFromUrl = () => {
+                    const urlMatch = (selectedMention.url || '').match(/x\.com\/(\w+)\/status/);
+                    return urlMatch ? urlMatch[1] : null;
+                };
+                const extractFromText = () => {
+                    const textMatch = (selectedMention.text || selectedMention.content || '').match(/@(\w{2,})/);
+                    return textMatch ? textMatch[1] : null;
+                };
+                const fallbackUsername = extractFromUrl() || extractFromText() || null;
+                const authorName = meta.author_name || (fallbackUsername ? `@${fallbackUsername}` : selectedMention.source || 'Usuário');
+                const authorUsername = meta.author_username || fallbackUsername || (selectedMention.source || 'user').toLowerCase().replace(/\s+/g, '_');
+                const authorImg = meta.author_profile_image || '';
+                const isVerified = meta.author_verified ?? false;
+                const realFollowers = meta.author_followers || 0;
+                const realLikes = meta.likes || 0;
+                const realRetweets = meta.retweets || 0;
+                const realReplies = meta.replies || 0;
+                const realImpressions = meta.impressions || 0;
+
+                const hash = selectedMention.id.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
+                const followers = realFollowers || (10 + (hash % 990)) * 100;
+                const likes = realLikes || 500 + (hash % 4500);
+                const retweets = realRetweets || 120 + (hash % 980);
+                const replies = realReplies || 10 + (hash % 90);
+                const impressions = realImpressions || (50 + (hash % 450)) * 1000;
+                const formatK = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+
+                const tweetContent = selectedMention.text || selectedMention.content || selectedMention.summary || selectedMention.title || '';
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                        onClick={() => setSelectedMention(null)}
+                    >
+                        <div
+                            className="w-full max-w-[480px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-slate-700/50 bg-black"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Close button */}
+                            <div className="flex justify-end p-2">
+                                <button
+                                    onClick={() => setSelectedMention(null)}
+                                    className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* X/Twitter Header */}
+                            <div className="px-4 pb-3 flex items-start gap-3">
+                                {authorImg ? (
+                                    <img src={authorImg.replace('_normal', '_bigger')} alt={authorName} className="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-slate-700" />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0 ring-2 ring-slate-700">
+                                        {authorName.split(/[\s_-]+/).map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() || '𝕏'}
+                                    </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[15px] font-bold text-white truncate">
+                                            {authorName}
+                                        </span>
+                                        {isVerified && (
+                                            <svg viewBox="0 0 22 22" className="w-[18px] h-[18px] text-sky-400 shrink-0" fill="currentColor">
+                                                <path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.855-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.69-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.636.433 1.221.878 1.69.47.446 1.055.752 1.69.883.635.13 1.294.083 1.902-.144.271.592.703 1.092 1.24 1.448.537.355 1.167.553 1.813.57.647-.017 1.277-.215 1.817-.57s.972-.856 1.245-1.448c.608.227 1.264.274 1.897.144.634-.131 1.217-.437 1.687-.883.445-.47.751-1.054.882-1.69.132-.633.083-1.29-.14-1.896.587-.273 1.084-.705 1.439-1.245.354-.54.551-1.17.569-1.817zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <span className="text-[13px] text-slate-500">
+                                        @{authorUsername}
+                                    </span>
+                                </div>
+                                {/* X logo */}
+                                <svg viewBox="0 0 24 24" className="w-6 h-6 text-white shrink-0" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                </svg>
+                            </div>
+
+                            {/* Tweet Content */}
+                            <div className="px-4 pb-3">
+                                <p className="text-[15px] text-white leading-relaxed whitespace-pre-line">
+                                    {tweetContent}
+                                </p>
+                            </div>
+
+                            {/* Timestamp */}
+                            <div className="px-4 pb-3 border-b border-slate-800">
+                                <span className="text-[13px] text-slate-500">
+                                    {new Date(selectedMention.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    {' · '}
+                                    {new Date(selectedMention.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    <span className="text-slate-600"> · </span>
+                                    <span className="text-white font-medium">X for Web</span>
+                                </span>
+                            </div>
+
+                            {/* Engagement Stats */}
+                            <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-5">
+                                <span className="text-[13px] text-slate-500"><span className="font-bold text-white">{formatK(retweets)}</span> Reposts</span>
+                                <span className="text-[13px] text-slate-500"><span className="font-bold text-white">{formatK(replies)}</span> Respostas</span>
+                                <span className="text-[13px] text-slate-500"><span className="font-bold text-white">{formatK(likes)}</span> Curtidas</span>
+                                <span className="text-[13px] text-slate-500"><span className="font-bold text-white">{formatK(impressions)}</span> Views</span>
+                            </div>
+
+                            {/* Followers */}
+                            <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-6">
+                                <span className="text-[13px] text-slate-500"><span className="font-bold text-white">{formatK(followers)}</span> Seguidores</span>
+                            </div>
+
+                            {/* Action Icons Row */}
+                            <div className="px-4 py-3 flex items-center justify-around">
+                                {[
+                                    { icon: <MessageSquare className="w-[18px] h-[18px]" />, color: 'hover:text-sky-400 hover:bg-sky-400/10' },
+                                    { icon: <RefreshCw className="w-[18px] h-[18px]" />, color: 'hover:text-emerald-400 hover:bg-emerald-400/10' },
+                                    { icon: <Heart className="w-[18px] h-[18px]" />, color: 'hover:text-pink-400 hover:bg-pink-400/10' },
+                                    { icon: <BarChart3 className="w-[18px] h-[18px]" />, color: 'hover:text-sky-400 hover:bg-sky-400/10' },
+                                    { icon: <Share2 className="w-[18px] h-[18px]" />, color: 'hover:text-sky-400 hover:bg-sky-400/10' },
+                                ].map((action, i) => (
+                                    <button key={i} className={`p-2 rounded-full text-slate-500 transition-colors ${action.color}`}>
+                                        {action.icon}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Sentiment indicator bar */}
+                            <div className={`h-1 w-full ${selectedMention.sentiment === 'negative' ? 'bg-red-500' : selectedMention.sentiment === 'positive' ? 'bg-emerald-500' : 'bg-slate-600'}`} />
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };

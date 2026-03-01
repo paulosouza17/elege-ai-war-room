@@ -10,7 +10,7 @@ export const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'general' | 'integrations' | 'users' | 'crisis' | 'entities' | 'neutrality'>('crisis');
 
     return (
-        <div className="flex h-screen bg-slate-950">
+        <div className="flex h-[calc(100vh-4rem)] bg-slate-950 -mx-6 -mb-6">
             {/* Sidebar Navigation for Settings */}
             <div className="w-64 border-r border-slate-800 bg-slate-900/50 p-6">
                 <h1 className="text-2xl font-bold text-white mb-8">Configurações</h1>
