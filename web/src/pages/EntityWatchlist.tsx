@@ -15,6 +15,7 @@ interface MonitoredEntity {
     aliases: string[];
     description: string;
     type: 'person' | 'organization' | 'place' | 'other';
+    role: 'target' | 'adversary' | 'ally' | 'neutral';
     monitoring_status: 'active' | 'standby';
     created_at: string;
 }
@@ -79,7 +80,7 @@ export const EntityWatchlist: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [currentEntity, setCurrentEntity] = useState<Partial<MonitoredEntity>>({
-        type: 'person', aliases: [], monitoring_status: 'standby'
+        type: 'person', role: 'neutral', aliases: [], monitoring_status: 'standby'
     });
     const [aliasInput, setAliasInput] = useState('');
     const [userId, setUserId] = useState<string | null>(null);
@@ -223,6 +224,7 @@ export const EntityWatchlist: React.FC = () => {
             name: currentEntity.name,
             description: currentEntity.description,
             type: currentEntity.type,
+            role: currentEntity.role || 'neutral',
             aliases: currentEntity.aliases,
             monitoring_status: currentEntity.monitoring_status || 'standby',
             user_id: userId
@@ -624,6 +626,12 @@ export const EntityWatchlist: React.FC = () => {
     const typeColor = (t: string) => {
         switch (t) { case 'person': return 'bg-blue-500/20 text-blue-400'; case 'organization': return 'bg-purple-500/20 text-purple-400'; case 'place': return 'bg-emerald-500/20 text-emerald-400'; default: return 'bg-slate-500/20 text-slate-400'; }
     };
+    const roleLabel = (r: string) => {
+        switch (r) { case 'target': return '🎯 Alvo'; case 'adversary': return '⚔️ Adversário'; case 'ally': return '🤝 Aliado'; default: return '🔘 Neutro'; }
+    };
+    const roleColor = (r: string) => {
+        switch (r) { case 'target': return 'bg-amber-500/20 text-amber-400 border border-amber-500/30'; case 'adversary': return 'bg-red-500/20 text-red-400 border border-red-500/30'; case 'ally': return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'; default: return 'bg-slate-500/20 text-slate-400'; }
+    };
 
     const kindIcon = (kind: string) => {
         switch (kind) {
@@ -722,6 +730,17 @@ export const EntityWatchlist: React.FC = () => {
                                 </select>
                             </div>
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs text-slate-400">Papel Estratégico</label>
+                                <select className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white" value={currentEntity.role || 'neutral'} onChange={e => setCurrentEntity({ ...currentEntity, role: e.target.value as any })}>
+                                    <option value="target">🎯 Alvo Principal</option>
+                                    <option value="adversary">⚔️ Adversário</option>
+                                    <option value="ally">🤝 Aliado</option>
+                                    <option value="neutral">🔘 Neutro</option>
+                                </select>
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <label className="text-xs text-slate-400">Descrição</label>
                             <textarea className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white h-20" value={currentEntity.description || ''} onChange={e => setCurrentEntity({ ...currentEntity, description: e.target.value })} />
@@ -761,15 +780,16 @@ export const EntityWatchlist: React.FC = () => {
                         <tr>
                             <th className="text-left px-4 py-3 text-slate-400 font-medium">Nome</th>
                             <th className="text-left px-4 py-3 text-slate-400 font-medium hidden md:table-cell">Tipo</th>
+                            <th className="text-left px-4 py-3 text-slate-400 font-medium hidden md:table-cell">Papel</th>
                             <th className="text-left px-4 py-3 text-slate-400 font-medium hidden lg:table-cell">Descrição</th>
                             <th className="text-right px-4 py-3 text-slate-400 font-medium w-20">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
                         {loading ? (
-                            <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">Carregando...</td></tr>
+                            <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Carregando...</td></tr>
                         ) : pagedEntities.length === 0 ? (
-                            <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">{searchQuery ? 'Nenhum resultado.' : 'Nenhuma entidade cadastrada.'}</td></tr>
+                            <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">{searchQuery ? 'Nenhum resultado.' : 'Nenhuma entidade cadastrada.'}</td></tr>
                         ) : pagedEntities.map(entity => (
                             <tr key={entity.id} className="hover:bg-slate-800/30 transition-colors">
                                 <td className="px-4 py-3">
@@ -788,6 +808,9 @@ export const EntityWatchlist: React.FC = () => {
                                 </td>
                                 <td className="px-4 py-3 hidden md:table-cell">
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${typeColor(entity.type)}`}>{typeLabel(entity.type)}</span>
+                                </td>
+                                <td className="px-4 py-3 hidden md:table-cell">
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${roleColor(entity.role)}`}>{roleLabel(entity.role)}</span>
                                 </td>
                                 <td className="px-4 py-3 hidden lg:table-cell">
                                     <span className="text-slate-500 text-xs truncate block max-w-[250px]">{entity.description || '—'}</span>
@@ -1083,8 +1106,8 @@ export const EntityWatchlist: React.FC = () => {
                                         <button
                                             onClick={toggleBulkSelectAll}
                                             className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${bulkSelected.size === channels.length && channels.length > 0
-                                                    ? 'bg-indigo-500 border-indigo-400'
-                                                    : 'border-slate-600 hover:border-slate-400'
+                                                ? 'bg-indigo-500 border-indigo-400'
+                                                : 'border-slate-600 hover:border-slate-400'
                                                 }`}
                                         >
                                             {bulkSelected.size === channels.length && channels.length > 0 && <Check className="w-3 h-3 text-white" />}
@@ -1112,8 +1135,8 @@ export const EntityWatchlist: React.FC = () => {
                                             <button
                                                 onClick={() => toggleBulkSelect(ch.id)}
                                                 className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${bulkSelected.has(ch.id)
-                                                        ? 'bg-indigo-500 border-indigo-400'
-                                                        : 'border-slate-600 hover:border-slate-400'
+                                                    ? 'bg-indigo-500 border-indigo-400'
+                                                    : 'border-slate-600 hover:border-slate-400'
                                                     }`}
                                             >
                                                 {bulkSelected.has(ch.id) && <Check className="w-3 h-3 text-white" />}

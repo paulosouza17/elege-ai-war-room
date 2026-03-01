@@ -175,27 +175,48 @@ export class AnalysisHandler implements NodeHandler {
 
             if (entities && entities.length > 0) {
                 monitoredEntities = entities;
+
+                // Group entities by role
+                const targets = entities.filter(e => e.role === 'target');
+                const adversaries = entities.filter(e => e.role === 'adversary');
+                const allies = entities.filter(e => e.role === 'ally');
+                const neutrals = entities.filter(e => !e.role || e.role === 'neutral');
+
+                const formatEntity = (e: any) => `- ID: ${e.id} | Nome: "${e.name}" | Apelidos: [${e.aliases?.join(', ')}] | Desc: "${e.description}"`;
+
+                let rolesSections = '';
+                if (targets.length > 0) {
+                    rolesSections += `\n🎯 ALVO PRINCIPAL (toda análise sob a perspectiva estratégica DELE):\n${targets.map(formatEntity).join('\n')}\n`;
+                }
+                if (adversaries.length > 0) {
+                    rolesSections += `\n⚔️ ADVERSÁRIOS (detectar SEMPRE, avaliar impacto NO ALVO PRINCIPAL):\n${adversaries.map(formatEntity).join('\n')}\nSentimento NEGATIVO do adversário = OPORTUNIDADE para o alvo principal.\nSentimento POSITIVO do adversário = AMEAÇA para o alvo principal.\n`;
+                }
+                if (allies.length > 0) {
+                    rolesSections += `\n🤝 ALIADOS (detectar, avaliar alinhamento com o alvo):\n${allies.map(formatEntity).join('\n')}\n`;
+                }
+                if (neutrals.length > 0) {
+                    rolesSections += `\n🔘 OUTROS MONITORADOS:\n${neutrals.map(formatEntity).join('\n')}\n`;
+                }
+
                 watchlistPrompt = `
-                ALVOS MONITORADOS (Entidades de Interesse):
-                Abaixo está a lista de pessoas/organizações que estamos monitorando.
-                Sua tarefa é identificar se alguma dessas entidades é mencionada no texto.
+                MAPA DE ENTIDADES MONITORADAS:
+                Abaixo estão as pessoas/organizações monitoradas, separadas por papel estratégico.
+                Sua tarefa é identificar se QUALQUER uma dessas entidades é mencionada no texto.
 
                 CRITÉRIOS DE IDENTIFICAÇÃO:
                 1. Ocorrência exata ou aproximada do "Nome" principal.
                 2. Ocorrência de QUALQUER um dos "Apelidos" listados.
                 3. Identificação contextual clara baseada na "Descrição".
-
-                Lista de Alvos:
-                ${entities.map(e => `- ID: ${e.id} | Nome: "${e.name}" | Apelidos: [${e.aliases?.join(', ')}] | Desc: "${e.description}"`).join('\n')}
-                
+                ${rolesSections}
                 INSTRUÇÃO OBRIGATÓRIA:
-                Se detectar qualquer um desses alvos (por nome ou apelido), você DEVE adicionar o ID correspondente ao array 'detected_entities' no JSON.
+                Se detectar qualquer uma dessas entidades (por nome ou apelido), você DEVE adicionar o ID correspondente ao array 'detected_entities' no JSON.
                 Exemplo: "detected_entities": ["${entities[0].id}"]
 
                 ⚠ REGRA ANTI-VIÉS — CRÍTICA:
                 Você DEVE detectar entidades monitoradas INDEPENDENTE DO SENTIMENTO do artigo.
                 Menções POSITIVAS, NEUTRAS ou ELOGIOSAS também devem ser detectadas.
                 NÃO ignore uma entidade só porque ela está em contexto favorável.
+                ADVERSÁRIOS devem ser detectados SEMPRE que citados, mesmo em contexto positivo para eles.
                 Qualquer citação = detecção obrigatória. Sentimento é irrelevante para a detecção.
                 `;
 
@@ -524,6 +545,30 @@ ${contextLinks.length > 0 ? `\nLINKS DE CONTEXTO:\n${contextLinks.join('\n')}` :
                         analysisData.detected_entities = [...new Set(normalizedIds)];
                     }
 
+                    // Fallback: map people_found/entities names → detected_entities UUIDs
+                    if ((!analysisData.detected_entities || analysisData.detected_entities.length === 0) && monitoredEntities.length > 0) {
+                        const altNames: string[] = [
+                            ...(analysisData.people_found || []),
+                            ...(analysisData.entities || []),
+                            ...((analysisData.context_analysis || []).map((ca: any) => ca.person).filter(Boolean)),
+                        ];
+                        const fallbackIds: string[] = [];
+                        for (const name of altNames) {
+                            if (typeof name !== 'string') continue;
+                            const match = monitoredEntities.find(e =>
+                                e.name.toLowerCase() === name.toLowerCase() ||
+                                (e.aliases || []).some((a: string) => a.toLowerCase() === name.toLowerCase())
+                            );
+                            if (match && !fallbackIds.includes(match.id)) {
+                                fallbackIds.push(match.id);
+                                await context.logger(`[AnalysisHandler] Fallback: mapped "${name}" → UUID ${match.id} (from people_found/entities)`);
+                            }
+                        }
+                        if (fallbackIds.length > 0) {
+                            analysisData.detected_entities = fallbackIds;
+                        }
+                    }
+
                     // POST-PROCESS: Normalize per_entity_analysis entity_id the same way
                     if (monitoredEntities.length > 0 && Array.isArray(analysisData.per_entity_analysis)) {
                         const validIds = new Set(monitoredEntities.map(e => e.id));
@@ -564,26 +609,49 @@ ${contextLinks.length > 0 ? `\nLINKS DE CONTEXTO:\n${contextLinks.join('\n')}` :
                         const relevanceMap: Record<string, number> = { high: 50, medium: 35, low: 20, none: 5 };
                         const baseScore = relevanceMap[analysisData.activation_relevance] || 30;
 
-                        // Only boost risk if the MONITORED TARGET has negative sentiment (not bystander entities)
-                        const monitoredEntityIds = new Set(monitoredEntities.map(e => e.id));
-                        const monitoredEntityNames = new Set(monitoredEntities.map(e => e.name.toLowerCase()));
+                        // Role-aware risk: only count negative sentiment on TARGET entities as risk
+                        // Negative sentiment on ADVERSARIES is an OPPORTUNITY (low risk)
+                        const targetEntities = monitoredEntities.filter(e => e.role === 'target');
+                        const targetEntityIds = new Set(targetEntities.map(e => e.id));
+                        const targetEntityNames = new Set(targetEntities.map(e => e.name.toLowerCase()));
                         const targetNegative = (analysisData.per_entity_analysis || []).some((ea: any) =>
                             ea.sentiment === 'negative' && (
-                                monitoredEntityIds.has(ea.entity_id) ||
-                                monitoredEntityNames.has((ea.entity_name || '').toLowerCase())
+                                targetEntityIds.has(ea.entity_id) ||
+                                targetEntityNames.has((ea.entity_name || '').toLowerCase())
                             )
                         );
-                        analysisData.risk_score = targetNegative ? Math.min(baseScore + 15, 95) : baseScore;
+
+                        // Check if adversary is getting positive coverage (threat to target)
+                        const adversaryEntities = monitoredEntities.filter(e => e.role === 'adversary');
+                        const adversaryIds = new Set(adversaryEntities.map(e => e.id));
+                        const adversaryNames = new Set(adversaryEntities.map(e => e.name.toLowerCase()));
+                        const adversaryPositive = (analysisData.per_entity_analysis || []).some((ea: any) =>
+                            ea.sentiment === 'positive' && (
+                                adversaryIds.has(ea.entity_id) ||
+                                adversaryNames.has((ea.entity_name || '').toLowerCase())
+                            )
+                        );
+
+                        if (targetNegative) {
+                            analysisData.risk_score = Math.min(baseScore + 20, 95);
+                        } else if (adversaryPositive) {
+                            // Adversary getting positive press = moderate risk for target
+                            analysisData.risk_score = Math.min(baseScore + 10, 65);
+                        } else {
+                            analysisData.risk_score = baseScore;
+                        }
                     }
 
                     // 2b. Risk score post-processing — override when AI confuses relevance with risk
                     // If monitored target sentiment is positive/neutral but AI gave high risk, cap it
                     if (analysisData.risk_score >= 60 && monitoredEntities.length > 0) {
-                        const monitoredEntityIds = new Set(monitoredEntities.map(e => e.id));
-                        const monitoredEntityNames = new Set(monitoredEntities.map(e => e.name.toLowerCase()));
+                        // Only check TARGET entities for risk override (not adversaries)
+                        const targetEntities2 = monitoredEntities.filter(e => e.role === 'target');
+                        const targetIds2 = new Set(targetEntities2.map(e => e.id));
+                        const targetNames2 = new Set(targetEntities2.map(e => e.name.toLowerCase()));
                         const targetAnalyses = (analysisData.per_entity_analysis || []).filter((ea: any) =>
-                            monitoredEntityIds.has(ea.entity_id) ||
-                            monitoredEntityNames.has((ea.entity_name || '').toLowerCase())
+                            targetIds2.has(ea.entity_id) ||
+                            targetNames2.has((ea.entity_name || '').toLowerCase())
                         );
                         const allTargetsPositiveOrNeutral = targetAnalyses.length > 0 &&
                             targetAnalyses.every((ea: any) => ea.sentiment === 'positive' || ea.sentiment === 'neutral');
