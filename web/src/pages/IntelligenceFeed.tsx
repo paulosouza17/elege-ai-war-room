@@ -842,7 +842,7 @@ export const IntelligenceFeed: React.FC = () => {
                             { id: 'pending', label: 'Pendentes (Inbox)', icon: <Archive className="w-4 h-4" /> },
                             { id: 'high_risk', label: 'Alto Risco', icon: <ShieldAlert className="w-4 h-4" /> },
                             { id: 'processed', label: 'Processados', icon: <CheckCircle className="w-4 h-4" /> },
-                            { id: 'archived', label: 'Arquivados', icon: <X className="w-4 h-4" /> }
+                            { id: 'archived', label: 'Arquivados', icon: <Archive className="w-4 h-4" /> }
                         ].map(f => (
                             <button
                                 key={f.id}
@@ -1228,6 +1228,18 @@ export const IntelligenceFeed: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Inline Archive Button */}
+                                {mention.status !== 'archived' && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); updateStatus(mention.id, 'archived'); }}
+                                        title="Arquivar"
+                                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-110 active:scale-95"
+                                        style={{ background: 'linear-gradient(135deg, #3b82f6, #f97316)' }}
+                                    >
+                                        <Archive className="w-4 h-4" />
+                                    </button>
+                                )}
                             </article>
                         ))}
 
@@ -2350,11 +2362,11 @@ export const IntelligenceFeed: React.FC = () => {
                             {selectedMention.status !== 'archived' && !selectedMention.bundle_id && selectedMention.status !== 'escalated' && (
                                 <div className="flex gap-3">
                                     <button
-                                        onClick={() => updateStatus(selectedMention.id, 'processed')}
+                                        onClick={() => updateStatus(selectedMention.id, 'archived')}
                                         className="flex-1 bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                                     >
-                                        <CheckCircle className="w-4 h-4" />
-                                        Marcar Visto
+                                        <Archive className="w-4 h-4" />
+                                        Arquivar
                                     </button>
                                     <button
                                         onClick={() => setIsEscalationModalOpen(true)}
