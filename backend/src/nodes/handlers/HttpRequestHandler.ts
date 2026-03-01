@@ -5,7 +5,8 @@ export class HttpRequestHandler implements NodeHandler {
     async execute(node: any, context: ExecutionContext): Promise<NodeOutput> {
         await context.logger(`[HttpRequestHandler] Executing HTTP request...`);
 
-        let url = interpolate(node.data.url || node.data.httpUrl || '', context);
+        // Prefer httpUrl (actual backend URL) over url (public-facing URL that may not resolve)
+        let url = interpolate(node.data.httpUrl || node.data.url || '', context);
 
         // Encode query parameter values (interpolation inserts raw text like "Flavio Bolsonaro")
         // This fixes spaces/accents that cause 500 errors on target APIs like Rails
@@ -170,6 +171,76 @@ export class HttpRequestHandler implements NodeHandler {
                 ? responseData.substring(0, 300)
                 : JSON.stringify(responseData).substring(0, 300);
             await context.logger(`[HttpRequestHandler] Response body: ${respPreview}`);
+
+            // ═══════════════════════════════════════════════════
+            // HTTP Error Status Code Validation
+            // ═══════════════════════════════════════════════════
+            const failOnHttpError = node.data.failOnHttpError !== false; // default: true
+            if (failOnHttpError && responseStatus >= 400) {
+                // Build human-readable error details per status code
+                let errorHint = '';
+                let errorIcon = '❌';
+
+                switch (responseStatus) {
+                    case 401:
+                        errorIcon = '🔐';
+                        errorHint = 'Autenticação necessária. Verifique se o header Authorization está configurado corretamente.';
+                        break;
+                    case 403:
+                        errorIcon = '🚫';
+                        errorHint = 'Acesso proibido (Forbidden). Possíveis causas: Token de API ausente ou inválido, IP não autorizado, endpoint requer autenticação, credenciais expiradas.';
+                        break;
+                    case 404:
+                        errorIcon = '🔍';
+                        errorHint = `Recurso não encontrado. Verifique se a URL está correta: ${url}`;
+                        break;
+                    case 429:
+                        errorIcon = '⏳';
+                        errorHint = 'Rate limit excedido. A API está limitando requisições. Tente novamente mais tarde ou reduza a frequência.';
+                        break;
+                    default:
+                        if (responseStatus >= 500) {
+                            errorIcon = '💥';
+                            errorHint = `Erro interno do servidor (${responseStatus}). O serviço de destino pode estar fora do ar ou com problemas.`;
+                        } else {
+                            errorHint = `Erro HTTP ${responseStatus}. Verifique a configuração da requisição.`;
+                        }
+                }
+
+                // Extract error detail from response body
+                let errorDetail = '';
+                if (responseData && typeof responseData === 'object') {
+                    errorDetail = responseData.detail || responseData.error || responseData.message || '';
+                } else if (typeof responseData === 'string') {
+                    errorDetail = responseData.substring(0, 200);
+                }
+
+                const fullError = `${errorIcon} HTTP ${responseStatus} ${responseStatusText} para ${url}`;
+
+                await context.logger(`[HttpRequestHandler] ${fullError}`);
+                await context.logger(`[HttpRequestHandler] 💡 ${errorHint}`);
+                if (errorDetail) {
+                    await context.logger(`[HttpRequestHandler] 📋 Detalhe do servidor: ${errorDetail}`);
+                }
+
+                return {
+                    success: false,
+                    error: `${fullError}\n${errorHint}${errorDetail ? '\nDetalhe: ' + errorDetail : ''}`,
+                    data: {
+                        statusCode: responseStatus,
+                        statusText: responseStatusText,
+                        errorHint,
+                        errorDetail,
+                        url,
+                        raw: respPreview,
+                        _variables: {
+                            statusCode: { label: 'Status Code', type: 'text' },
+                            errorHint: { label: 'Dica de Erro', type: 'text' },
+                            errorDetail: { label: 'Detalhe do Erro', type: 'text' },
+                        }
+                    }
+                };
+            }
 
             // Normalize response for downstream nodes
             let items: any[] = [];
