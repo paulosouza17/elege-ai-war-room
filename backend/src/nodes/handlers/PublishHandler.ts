@@ -1,5 +1,6 @@
 import { NodeHandler, ExecutionContext, NodeOutput } from '../NodeHandler';
 import { supabase } from '../../config/supabase';
+import { checkDuplicates } from '../../services/deduplication';
 
 export class PublishHandler implements NodeHandler {
     async execute(node: any, context: ExecutionContext): Promise<NodeOutput> {
@@ -138,12 +139,18 @@ export class PublishHandler implements NodeHandler {
 
         // 2. FORMAT FOR DB
         const feedItems = itemsToPublish.map(item => {
-            // Auto-detect TV/streaming: YouTube URLs should be 'tv', not 'social_media'
+            // Auto-detect source_type from URL patterns
             const itemUrl = (item.url || '').toLowerCase();
             const isYouTube = itemUrl.includes('youtube.com') || itemUrl.includes('youtu.be');
+            const isInstagram = itemUrl.includes('instagram.com') || itemUrl.includes('instagr.am');
+            const isTikTok = itemUrl.includes('tiktok.com') || itemUrl.includes('vm.tiktok.com');
             let resolvedSourceType = item.source_type || item.content_type_detected || 'portal';
             if (isYouTube && (resolvedSourceType === 'social_media' || resolvedSourceType === 'portal')) {
                 resolvedSourceType = 'tv';
+            } else if (isInstagram && resolvedSourceType !== 'instagram') {
+                resolvedSourceType = 'instagram';
+            } else if (isTikTok && resolvedSourceType !== 'tiktok') {
+                resolvedSourceType = 'tiktok';
             }
 
             return {
@@ -188,24 +195,48 @@ export class PublishHandler implements NodeHandler {
             };
         });
 
-        // 3. INSERT FEED ITEMS
+        // 3. DEDUP CHECK — Filter out items already in DB for this activation
+        const { newItems: dedupedFeedItems, duplicateCount } = await checkDuplicates(
+            supabase,
+            feedItems,
+            context.activationId,
+            context.logger
+        );
+
+        if (dedupedFeedItems.length === 0) {
+            await context.logger(`[PublishHandler] ⏭ All ${feedItems.length} items are duplicates. Nothing to publish.`);
+            return {
+                success: true,
+                data: {
+                    publishedCount: 0,
+                    skippedDuplicates: duplicateCount,
+                    message: `Todos os ${duplicateCount} itens já existem no feed. Nenhum item novo publicado.`
+                }
+            };
+        }
+
+        if (duplicateCount > 0) {
+            await context.logger(`[PublishHandler] ⏭ Skipped ${duplicateCount} duplicate(s), inserting ${dedupedFeedItems.length} new item(s).`);
+        }
+
+        // 4. INSERT FEED ITEMS (only non-duplicates)
         const { error } = await supabase
             .from('intelligence_feed')
-            .insert(feedItems);
+            .insert(dedupedFeedItems);
 
         if (error) {
             return { success: false, error: `DB Insert Error: ${error.message}` };
         }
 
-        // 4. UPDATE ACTIVATION FILES (Traceability)
+        // 5. UPDATE ACTIVATION FILES (Traceability)
         const fileId = context.globalInput?.file_id;
         if (fileId) {
             const analysisSummary = {
-                record_count: feedItems.length,
-                summary: feedItems[0]?.summary,
-                risk_score: feedItems[0]?.risk_score,
-                sentiment: feedItems[0]?.sentiment,
-                keywords: feedItems[0]?.classification_metadata?.keywords || []
+                record_count: dedupedFeedItems.length,
+                summary: dedupedFeedItems[0]?.summary,
+                risk_score: dedupedFeedItems[0]?.risk_score,
+                sentiment: dedupedFeedItems[0]?.sentiment,
+                keywords: dedupedFeedItems[0]?.classification_metadata?.keywords || []
             };
 
             await supabase
@@ -220,12 +251,13 @@ export class PublishHandler implements NodeHandler {
             await context.logger(`[PublishHandler] Updated activation_file ${fileId} status to processed.`);
         }
 
-        await context.logger(`[PublishHandler] Successfully published ${feedItems.length} items.`);
+        await context.logger(`[PublishHandler] Successfully published ${dedupedFeedItems.length} items${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}.`);
 
         return {
             success: true,
             data: {
-                publishedCount: feedItems.length
+                publishedCount: dedupedFeedItems.length,
+                skippedDuplicates: duplicateCount
             }
         };
     }
@@ -353,7 +385,7 @@ export class PublishHandler implements NodeHandler {
                         return null;
                     }).filter(Boolean);
                     if (names.length > 0) {
-                        detectedEntities = [...new Set([...detectedEntities, ...names])];
+                        detectedEntities = Array.from(new Set([...detectedEntities, ...names]));
                     }
                 }
             }
@@ -366,7 +398,7 @@ export class PublishHandler implements NodeHandler {
                 if (Array.isArray(val) && val.length > 0) {
                     const kws = val.filter((k: any) => typeof k === 'string');
                     if (kws.length > 0) {
-                        keywords = [...new Set([...keywords, ...kws])];
+                        keywords = Array.from(new Set([...keywords, ...kws]));
                     }
                 }
             }

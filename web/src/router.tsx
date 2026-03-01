@@ -26,7 +26,7 @@ import { FlowOutputs } from './pages/FlowOutputs';
 import { ServerHealth } from './pages/ServerHealth';
 
 import { ActivationDetail } from './pages/ActivationDetail';
-import { AlvosMonitorados } from './pages/AlvosMonitorados';
+import { EntityWatchlist } from './pages/EntityWatchlist';
 import { PublicReport } from './pages/PublicReport';
 import MediaOutlets from './pages/MediaOutlets';
 import { PublicDashboard } from './pages/PublicDashboard';
@@ -136,7 +136,7 @@ export const router = createBrowserRouter([
                 path: 'entities',
                 element: (
                     <RequireRole roles={['admin', 'analyst']}>
-                        <AlvosMonitorados />
+                        <EntityWatchlist />
                     </RequireRole>
                 ),
             },

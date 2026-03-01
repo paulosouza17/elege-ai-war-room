@@ -70,7 +70,7 @@ const poll = async () => {
                     error_message: 'Execution timed out (stuck in running for >10 minutes)',
                 })
                 .eq('status', 'running')
-                .lt('created_at', tenMinAgo)
+                .lt('updated_at', tenMinAgo)
                 .select('id');
 
             if (stale && stale.length > 0) {

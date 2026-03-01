@@ -77,6 +77,221 @@ app.get('/api/elege/assets/:postId/:assetId', async (req, res) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// Elege.AI Person Photo Proxy — get/upload person photos
+// ═══════════════════════════════════════════════════════════
+
+// GET /api/elege/people/:id/photo — Stream person photo (JPEG)
+app.get('/api/elege/people/:id/photo', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const token = process.env.ELEGEAI_API_TOKEN || '';
+        const baseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
+        const photoUrl = `${baseUrl}/api/people/${id}/photo`;
+
+        const upstream = await axios.get(photoUrl, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            responseType: 'stream',
+            timeout: 15000,
+        });
+
+        const contentType = upstream.headers['content-type'] || 'image/jpeg';
+        const contentLength = upstream.headers['content-length'];
+
+        res.setHeader('Content-Type', contentType);
+        if (contentLength) res.setHeader('Content-Length', contentLength);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+
+        upstream.data.pipe(res);
+    } catch (error: any) {
+        const status = error.response?.status || 500;
+        if (status === 404) {
+            // No photo — return transparent 1x1 pixel or 404
+            res.status(404).json({ error: 'No photo' });
+        } else {
+            console.error(`[ElegeProxy] Person photo ${id} failed (${status}):`, error.response?.statusText || error.message);
+            if (!res.headersSent) {
+                res.status(status).json({ error: error.response?.statusText || error.message });
+            }
+        }
+    }
+});
+
+// POST /api/elege/people/:id/photo — Upload person photo (multipart/form-data)
+app.post('/api/elege/people/:id/photo', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const token = process.env.ELEGEAI_API_TOKEN || '';
+        const baseUrl = process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001';
+        const photoUrl = `${baseUrl}/api/people/${id}/photo`;
+
+        // Forward the raw request body as stream
+        const upstream = await axios.post(photoUrl, req, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': req.headers['content-type'] || 'multipart/form-data',
+            },
+            timeout: 30000,
+        });
+
+        res.json({ success: true, data: upstream.data });
+    } catch (error: any) {
+        const status = error.response?.status || 500;
+        console.error(`[ElegeProxy] Upload photo for person ${id} failed (${status}):`, error.response?.data || error.message);
+        if (!res.headersSent) {
+            res.status(status).json({ error: error.response?.data || error.message });
+        }
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// Elege.AI Channel Proxy — CRUD for channels (Instagram, TikTok, etc.)
+// ═══════════════════════════════════════════════════════════
+const elegeHeaders = () => ({
+    'Authorization': `Bearer ${process.env.ELEGEAI_API_TOKEN || ''}`,
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+});
+const elegeBase = () => `${process.env.ELEGE_BASE_URL || 'http://app.elege.ai:3001'}/api`;
+
+// GET /api/elege/channels — List all channels (optionally filter by ?kind=instagram,tiktok)
+app.get('/api/elege/channels', async (req, res) => {
+    try {
+        const response = await axios.get(`${elegeBase()}/channels?limit=200`, { headers: elegeHeaders(), timeout: 15000 });
+        let channels = response.data.channels || response.data.data || [];
+        // Filter by kind if specified
+        const kind = req.query.kind as string;
+        if (kind) {
+            const kinds = kind.split(',').map(k => k.trim().toLowerCase());
+            channels = channels.filter((ch: any) => kinds.includes(String(ch.kind).toLowerCase()));
+        }
+        res.json({ success: true, channels });
+    } catch (error: any) {
+        console.error('[ElegeChannelProxy] GET error:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ error: error.response?.data || error.message });
+    }
+});
+
+// POST /api/elege/channels — Create a new channel
+app.post('/api/elege/channels', async (req, res) => {
+    try {
+        const payload = {
+            ...req.body,
+            country_id: req.body.country_id || 1, // Default: Brazil
+        };
+        console.log(`[ElegeChannelProxy] Creating channel:`, payload);
+        const response = await axios.post(`${elegeBase()}/channels`, payload, { headers: elegeHeaders(), timeout: 15000 });
+        res.json({ success: true, channel: response.data });
+    } catch (error: any) {
+        console.error('[ElegeChannelProxy] POST error:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ error: error.response?.data || error.message });
+    }
+});
+
+// DELETE /api/elege/channels/:id — Remove a channel
+app.delete('/api/elege/channels/:id', async (req, res) => {
+    try {
+        const response = await axios.delete(`${elegeBase()}/channels/${req.params.id}`, { headers: elegeHeaders(), timeout: 15000 });
+        res.json({ success: true, data: response.data });
+    } catch (error: any) {
+        console.error('[ElegeChannelProxy] DELETE error:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ error: error.response?.data || error.message });
+    }
+});
+
+// PATCH /api/elege/channels/:id — Update a channel
+app.patch('/api/elege/channels/:id', async (req, res) => {
+    try {
+        const response = await axios.patch(`${elegeBase()}/channels/${req.params.id}`, req.body, { headers: elegeHeaders(), timeout: 15000 });
+        res.json({ success: true, channel: response.data });
+    } catch (error: any) {
+        console.error('[ElegeChannelProxy] PATCH error:', error.response?.data || error.message);
+        res.status(error.response?.status || 500).json({ error: error.response?.data || error.message });
+    }
+});
+
+// POST /api/elege/channels/batch — Create multiple channels + link to activations
+app.post('/api/elege/channels/batch', async (req, res) => {
+    try {
+        const { channels: channelList, activation_ids } = req.body;
+        if (!Array.isArray(channelList) || channelList.length === 0) {
+            return res.status(400).json({ error: 'channels array is required' });
+        }
+
+        const results: { title: string; success: boolean; channel_id?: number; error?: string }[] = [];
+
+        for (const ch of channelList) {
+            try {
+                const payload = {
+                    title: ch.title,
+                    kind: ch.kind,
+                    url: ch.url || '',
+                    username: ch.username || null,
+                    country_id: ch.country_id || 1,
+                };
+                const response = await axios.post(`${elegeBase()}/channels`, payload, { headers: elegeHeaders(), timeout: 15000 });
+                const createdChannel = response.data;
+                const channelId = createdChannel.id || createdChannel.channel?.id;
+
+                // Save activation mappings in Supabase
+                if (channelId && Array.isArray(activation_ids) && activation_ids.length > 0) {
+                    const mappings = activation_ids.map((aid: string) => ({
+                        elege_channel_id: channelId,
+                        channel_kind: ch.kind,
+                        channel_title: ch.title,
+                        activation_id: aid,
+                    }));
+                    await supabaseClient.from('channel_activations').upsert(mappings, { onConflict: 'elege_channel_id,activation_id' });
+                }
+
+                results.push({ title: ch.title, success: true, channel_id: channelId });
+            } catch (err: any) {
+                const errMsg = err.response?.data?.error || err.message;
+                results.push({ title: ch.title, success: false, error: errMsg });
+            }
+        }
+
+        const created = results.filter(r => r.success).length;
+        const failed = results.filter(r => !r.success).length;
+        console.log(`[ElegeChannelProxy] Batch: ${created} created, ${failed} failed`);
+        res.json({ success: true, created, failed, results });
+    } catch (error: any) {
+        console.error('[ElegeChannelProxy] BATCH error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// POST /api/elege/channels/:id/activations — Save activation mappings for an existing channel
+app.post('/api/elege/channels/:id/activations', async (req, res) => {
+    try {
+        const channelId = parseInt(req.params.id);
+        const { activation_ids, channel_kind, channel_title } = req.body;
+        if (!Array.isArray(activation_ids)) {
+            return res.status(400).json({ error: 'activation_ids array is required' });
+        }
+
+        // Remove old mappings for this channel
+        await supabaseClient.from('channel_activations').delete().eq('elege_channel_id', channelId);
+
+        // Insert new mappings
+        if (activation_ids.length > 0) {
+            const mappings = activation_ids.map((aid: string) => ({
+                elege_channel_id: channelId,
+                channel_kind: channel_kind || 'unknown',
+                channel_title: channel_title || '',
+                activation_id: aid,
+            }));
+            const { error } = await supabaseClient.from('channel_activations').insert(mappings);
+            if (error) throw error;
+        }
+
+        res.json({ success: true, count: activation_ids.length });
+    } catch (error: any) {
+        console.error('[ElegeChannelProxy] Activations save error:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.use('/api/v1', (req, res) => {
     res.json({ message: 'War Room API v1' });
 });

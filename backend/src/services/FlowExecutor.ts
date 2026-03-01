@@ -198,7 +198,7 @@ export class FlowExecutor {
         }
 
         // 4. Execute the graph with timeout
-        const EXECUTION_TIMEOUT_MS = 5 * 60_000; // 5 minutes max per execution
+        const EXECUTION_TIMEOUT_MS = 8 * 60_000; // 8 minutes max per execution (increased to support loops with AI analysis)
         try {
             await Promise.race([
                 this.executeSubgraph(
@@ -530,6 +530,11 @@ export class FlowExecutor {
                 await context.logger(`[Loop depth=${depth}] Starting iteration over ${loopItems.length} items`);
 
                 for (let i = 0; i < loopItems.length; i++) {
+                    // Heartbeat: update timestamp to prevent stale cleanup from killing active executions
+                    await supabase.from('flow_executions')
+                        .update({ updated_at: new Date().toISOString() })
+                        .eq('id', executionId);
+
                     // Update loop node output with current item
                     context.nodeOutputs[currentNode.id] = {
                         ...nodeOutput,

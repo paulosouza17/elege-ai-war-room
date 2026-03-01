@@ -15,8 +15,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     });
 }
 
-const RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 10_000; // 10 seconds between retries
+const RETRY_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 3_000; // 3 seconds between retries (reduced from 10s to prevent cascading timeouts)
 
 async function withRetry<T>(fn: () => Promise<T>, label: string, logger: (msg: string) => Promise<void>): Promise<T> {
     let lastError: Error | null = null;
@@ -114,6 +114,41 @@ export class AnalysisHandler implements NodeHandler {
             // Sort by engagement (highest first) to prioritize impactful content
             itemsToAnalyze.sort((a, b) => (b.engagement || b.likes || 0) - (a.engagement || a.likes || 0));
             itemsToAnalyze = itemsToAnalyze.slice(0, MAX_ITEMS_PER_EXECUTION);
+        }
+
+        // DEDUP: Skip items that already exist in intelligence_feed for this activation
+        if (context.activationId && itemsToAnalyze.length > 0) {
+            const urls = itemsToAnalyze.map(i => i.url).filter((u: string) => u && u.length >= 5);
+            if (urls.length > 0) {
+                const { data: existingRows } = await supabase
+                    .from('intelligence_feed')
+                    .select('url')
+                    .in('url', urls)
+                    .eq('activation_id', context.activationId);
+
+                if (existingRows && existingRows.length > 0) {
+                    const existingUrls = new Set(existingRows.map((r: any) => r.url));
+                    const before = itemsToAnalyze.length;
+                    itemsToAnalyze = itemsToAnalyze.filter(i => !i.url || !existingUrls.has(i.url));
+                    const skipped = before - itemsToAnalyze.length;
+                    if (skipped > 0) {
+                        await context.logger(`[AnalysisHandler] ⏭ Dedup: skipped ${skipped} already-published item(s), ${itemsToAnalyze.length} remain for analysis.`);
+                    }
+                }
+            }
+
+            if (itemsToAnalyze.length === 0) {
+                await context.logger(`[AnalysisHandler] ✅ All items already exist in feed. Skipping AI analysis.`);
+                return {
+                    success: true,
+                    data: {
+                        items: [],
+                        count: 0,
+                        summary: 'Todos os itens já foram analisados anteriormente.',
+                        _variables: { items: { label: 'Itens Analisados', type: 'list' }, count: { label: 'Quantidade', type: 'text' }, summary: { label: 'Resumo', type: 'text' } }
+                    }
+                };
+            }
         }
 
         // Read node config
@@ -260,6 +295,92 @@ IMPORTANTE: Hashtags de apoio (#ImpeachmentDoX, #XPresidente) indicam o sentimen
 Um tweet que DEFENDE ou PROMOVE alguém é POSITIVO para essa pessoa, mesmo que critique outros.
 `;
 
+            // 3d. SOCIAL MEDIA SENTIMENT GUIDE — injected when items come from Twitter/social_media
+            let socialMediaSentimentGuide = '';
+            const isSocialMedia = item.source === 'twitter' || item.source === 'x' ||
+                item.source_type === 'social_media' || item.source_type === 'twitter' ||
+                (item.url && /twitter\.com|x\.com/i.test(item.url)) ||
+                item.author_username; // Twitter items always have author_username
+
+            if (isSocialMedia) {
+                socialMediaSentimentGuide = `
+⚠ ATENÇÃO — REGRAS PARA COMENTÁRIOS DE REDES SOCIAIS (TWITTER/X):
+Comentários de redes sociais são CURTOS e usam linguagem informal.
+NÃO classifique como "neutral" apenas porque o texto é breve ou curto.
+Avalie a INTENÇÃO e o TOM do autor, não apenas as palavras literais.
+
+SINAIS DE SENTIMENTO POSITIVO (apoio/endosso) — classifique como "positive":
+- Bandeiras nacionais (🇧🇷) = patriotismo/apoio ao alvo
+- Emojis de força/aprovação: 💪, 👏, ❤️, 🙏, 🔥, 👊
+- "Nome + cargo futuro": "X Presidente", "X Governador", "X Senador" = endosso direto
+- Apenas o nome + emojis positivos = demonstração de apoio
+- "X crescendo", "X avançando", "pesquisas apontam X crescendo" = narrativa favorável
+- Expressões como "mito", "melhor", "gigante", "orgulho", "herói", "futuro do Brasil"
+- "Nem deveria pisar em solo X nessa campanha" (contexto de domínio) = elogio
+- Hashtags de apoio: #XPresidente, #VoteX, #X2026
+- Textos que só contêm emojis positivos (🇧🇷🇧🇷🇧🇷, 💪💪) = apoio
+
+SINAIS DE SENTIMENTO NEGATIVO (ataque/crítica) — classifique como "negative":
+- "não vale nada", "é outro que não vale nada" = depreciação
+- "é acusado de...", "acusado de..." = associação com escândalo
+- Termos de acusação: "rachadinha", "corrupção", "indiciado", "investigado", "réu"
+- "perde apoio", "derrotado", "fracassou", "perdeu" = narrativa de derrota
+- Ironia/sarcasmo contra o alvo = negativo
+- Xingamentos e gírias ofensivas = negativo
+- "Não merece", "vergonha", "mentiroso", "covarde", "traidor"
+- "propaganda eleitoral antecipada" = associação com irregularidade
+
+🎭 DETECÇÃO DE SARCASMO E IRONIA — REGRAS OBRIGATÓRIAS:
+Sarcasmo e ironia são MUITO comuns em redes sociais e INVERTEM o sentido literal.
+Se o texto usa ironia/sarcasmo CONTRA o alvo monitorado, classifique como "negative".
+Se o texto usa ironia/sarcasmo A FAVOR do alvo (ironizando adversários), classifique como "positive".
+Padrões de sarcasmo/ironia a detectar:
+- Elogio exagerado com intenção oposta: "Parabéns, X! Destruiu o país com sucesso!" → NEGATIVO
+- Uso de aspas de sarcasmo: "O 'honesto' senador..." → NEGATIVO
+- Perguntas retóricas: "Cadê o X agora?" → geralmente NEGATIVO
+- Falso apoio: "Confia no X que dá certo 🤡" → NEGATIVO (emoji de palhaço confirma sarcasmo)
+- Ironia com adversários para apoiar o alvo: "Dizem que X é ruim, só ganhou todas as pesquisas" → POSITIVO
+- Tom de deboche: "kkkk", "aff", "tá serto" combinados com menção ao alvo → avaliar contexto
+REGRA: na dúvida entre ironia e sentido literal, considere o TOM GERAL do tweet e os emojis usados.
+
+🤬 DETECÇÃO DE XINGAMENTOS E LINGUAGEM OFENSIVA:
+Qualquer xingamento ou gíria ofensiva direcionada ao alvo = "negative" OBRIGATÓRIO.
+Termos ofensivos comuns (brasileiros): "lixo", "vagabundo", "ladrão", "bandido", "fdp", "safado", "canalha", "pilantra", "verme", "imbecil", "idiota", "burro", "palhaço", "piada", "sem vergonha", "cara de pau"
+Variações com abreviações: "vtnc", "pqp", "vsf", "tmj" (apoio)
+Gírias de apoio (POSITIVO): "mito", "pai", "faz o L" (contexto político), "tamo junto", "tmj", "brabo"
+REGRA: xingamento ao alvo = negative. Xingamento a adversários do alvo = positive para o alvo.
+
+📊 DICIONÁRIO DE EMOJIS E SENTIMENTO:
+Emojis POSITIVOS (apoio, amor, força):
+🇧🇷 = patriotismo/apoio | ❤️💚💛💜 = amor/apoio | 💪👊✊ = força/luta
+👏🙌 = aplausos/aprovação | 🔥 = intensidade positiva | 🙏 = gratidão/fé
+⭐🌟 = destaque positivo | 🏆🥇 = vitória | ✅👍 = aprovação
+😍🥰 = admiração | 🎉🎊 = celebração | 🫡 = respeito
+
+Emojis NEGATIVOS (crítica, repúdio, deboche):
+🤡 = deboche/chamando de palhaço | 💩 = desprezo | 🤮 = nojo/repúdio
+👎 = reprovação | 😡🤬 = raiva | 🚩 = alerta/red flag
+💀☠️ = "morri" (pode ser riso ou descrença) | 🗑️ = lixo/descarte
+😤 = frustração | 🐍 = traição | 🤥 = chamando de mentiroso
+
+Emojis AMBÍGUOS (dependem do contexto):
+😂🤣 = riso (pode ser apoio ou deboche — avaliar texto ao redor)
+🤔 = dúvida/desconfiança | 😏 = sarcasmo ou confiança
+👀 = atenção/exposição | 😬 = constrangimento
+REGRA: emojis SOZINHOS sem texto = avaliar pela combinação. Ex: 🇧🇷🇧🇷🇧🇷 = positive, 🤡🤡🤡 = negative.
+
+REGRA ANTI-NEUTRALIDADE EXCESSIVA:
+Em redes sociais, a MAIORIA dos comentários expressa OPINIÃO, não fato.
+Se o comentário contém QUALQUER sinal emocional (emoji, tom, adjetivo, sarcasmo, xingamento), NÃO classifique como "neutral".
+"neutral" deve ser RESERVADO para menções PURAMENTE FACTUAIS sem tom opinativo.
+Exemplo neutral válido: "Flávio Bolsonaro participou da reunião no Senado"
+Exemplo que NÃO é neutral: "Flávio Bolsonaro 🇧🇷🇧🇷🇧🇷" → é POSITIVE (apoio com emojis)
+Exemplo que NÃO é neutral: "X é outro q não vale nada" → é NEGATIVE (depreciação)
+Exemplo que NÃO é neutral: "Parabéns X 🤡" → é NEGATIVE (sarcasmo + emoji de deboche)
+Exemplo que NÃO é neutral: "X é um lixo" → é NEGATIVE (xingamento)
+`;
+            }
+
             // Build activation-scoped framing
             let activationFraming = '';
             if (triggerOutput) {
@@ -298,7 +419,7 @@ Exemplos:
 
             }
 
-            const prompt = `${prePrompt ? `${prePrompt}\n\n` : ''}${resolvedPrompt ? `${resolvedPrompt}\n\n` : ''}${!prePrompt && !resolvedPrompt ? 'Analise o conteúdo a seguir com foco em inteligência política e narrativa.\n\n' : ''}${activationFraming}${activationPrompt}${scriptContextPrompt}${portalName ? `VEÍCULO/PORTAL DE ORIGEM: ${portalName}\n` : ''}${watchlistPrompt}${perEntityInstruction}
+            const prompt = `${prePrompt ? `${prePrompt}\n\n` : ''}${resolvedPrompt ? `${resolvedPrompt}\n\n` : ''}${!prePrompt && !resolvedPrompt ? 'Analise o conteúdo a seguir com foco em inteligência política e narrativa.\n\n' : ''}${activationFraming}${activationPrompt}${scriptContextPrompt}${portalName ? `VEÍCULO/PORTAL DE ORIGEM: ${portalName}\n` : ''}${watchlistPrompt}${perEntityInstruction}${socialMediaSentimentGuide}
 ---
 CONTEÚDO PARA ANÁLISE:
 Título: ${item.title || 'Sem título'}

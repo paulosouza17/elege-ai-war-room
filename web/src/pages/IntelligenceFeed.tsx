@@ -221,6 +221,154 @@ const safeStr = (v: any): string => {
 };
 const safeKeywords = (arr: any[]): string[] => arr.map(safeStr).filter(s => s.length > 0);
 
+// ── Person Bubble: Photo avatar with sentiment border ──
+interface PersonBubbleProps {
+    entityId: string | null;
+    entityName: string;
+    sentiment: 'positive' | 'negative' | 'neutral' | 'mixed' | string;
+    size?: number; // px, default 32
+    className?: string;
+    style?: React.CSSProperties;
+}
+
+const PersonBubble: React.FC<PersonBubbleProps> = ({ entityId, entityName, sentiment, size = 32, className = '', style }) => {
+    const [imgError, setImgError] = useState(false);
+    const sentimentColor = sentiment === 'positive' ? '#22c55e' : sentiment === 'negative' ? '#ef4444' : '#6b7280';
+    const initials = entityName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+    const photoUrl = entityId ? `/api/elege/people/${entityId}/photo` : null;
+
+    return (
+        <div
+            className={`rounded-full flex items-center justify-center font-bold text-white bg-slate-700 shadow-lg overflow-hidden shrink-0 ${className}`}
+            style={{ width: size, height: size, border: `2px solid ${sentimentColor}`, fontSize: size * 0.32, ...style }}
+            title={entityName}
+        >
+            {photoUrl && !imgError ? (
+                <img
+                    src={photoUrl}
+                    alt={entityName}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                />
+            ) : (
+                initials
+            )}
+        </div>
+    );
+};
+
+// ── Person Bubble Group: max 3 visible + overflow hover card ──
+interface PersonBubbleGroupProps {
+    entities: { id: string | null; name: string; sentiment: string }[];
+    size?: number;
+    maxVisible?: number;
+    position?: 'bottom-right' | 'inline' | 'right';
+}
+
+const PersonBubbleGroup: React.FC<PersonBubbleGroupProps> = ({ entities, size = 32, maxVisible = 3, position = 'inline' }) => {
+    const [showOverflow, setShowOverflow] = useState(false);
+    if (!entities || entities.length === 0) return null;
+
+    const visible = entities.slice(0, maxVisible);
+    const overflow = entities.slice(maxVisible);
+
+    const positionClasses = position === 'bottom-right'
+        ? 'absolute bottom-3 right-3'
+        : position === 'right'
+            ? 'relative ml-3'
+            : 'flex';
+
+    return (
+        <div className={`flex items-center ${positionClasses}`} style={{ zIndex: 2 }}>
+            {visible.map((entity, idx) => (
+                <PersonBubble
+                    key={entity.id || entity.name}
+                    entityId={entity.id}
+                    entityName={entity.name}
+                    sentiment={entity.sentiment}
+                    size={size}
+                    style={idx > 0 ? { marginLeft: -size * 0.2 } : undefined}
+                />
+            ))}
+            {overflow.length > 0 && (
+                <div
+                    className="relative"
+                    onMouseEnter={() => setShowOverflow(true)}
+                    onMouseLeave={() => setShowOverflow(false)}
+                >
+                    <div
+                        className="rounded-full flex items-center justify-center font-bold text-slate-300 bg-slate-800 border-2 border-slate-600 cursor-pointer hover:bg-slate-700 transition-colors shrink-0"
+                        style={{ width: size, height: size, marginLeft: -size * 0.2, fontSize: size * 0.3 }}
+                        title={`+${overflow.length} mais`}
+                    >
+                        +{overflow.length}
+                    </div>
+                    {showOverflow && (
+                        <div
+                            className="absolute bottom-full mb-2 right-0 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 min-w-[200px] max-w-[280px]"
+                            style={{ zIndex: 9999 }}
+                        >
+                            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-2">Mais pessoas mencionadas</div>
+                            <div className="space-y-2">
+                                {overflow.map(entity => (
+                                    <div key={entity.id || entity.name} className="flex items-center gap-2">
+                                        <PersonBubble
+                                            entityId={entity.id}
+                                            entityName={entity.name}
+                                            sentiment={entity.sentiment}
+                                            size={24}
+                                        />
+                                        <span className="text-xs text-slate-300 truncate">{entity.name}</span>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold ml-auto shrink-0 ${entity.sentiment === 'positive' ? 'text-emerald-400 border-emerald-900 bg-emerald-950/30' :
+                                            entity.sentiment === 'negative' ? 'text-red-400 border-red-900 bg-red-950/30' :
+                                                'text-slate-400 border-slate-700 bg-slate-800/30'
+                                            }`}>
+                                            {entity.sentiment === 'positive' ? 'POS' : entity.sentiment === 'negative' ? 'NEG' : 'NEU'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Helper: extract entity data with Elege person IDs and sentiment from a mention's classification_metadata
+const extractEntityBubbles = (mention: Mention): { id: string | null; name: string; sentiment: string }[] => {
+    const cm = mention.classification_metadata || {} as any;
+    const perEntity = cm.per_entity_analysis || [];
+    const detectedEntities = cm.detected_entities || [];
+    // Elege numeric person ID stored at metadata root level (from ElegeSyncService)
+    const elegePersonId = cm.elege_person_id;
+
+    // Prefer per_entity_analysis (has elege_person_id and individual sentiment)
+    if (perEntity.length > 0) {
+        return perEntity.map((ea: any) => ({
+            // Use elege_person_id (numeric) for photo loading, NOT entity_id (Supabase UUID)
+            id: ea.elege_person_id ? String(ea.elege_person_id) : (elegePersonId ? String(elegePersonId) : null),
+            name: ea.entity_name || ea.entity || '',
+            sentiment: ea.sentiment || mention.sentiment || 'neutral',
+        })).filter((e: any) => e.name);
+    }
+
+    // Fallback: detected_entities (names only, use overall sentiment)
+    // Use elege_person_id from classification_metadata root if available
+    if (detectedEntities.length > 0) {
+        return detectedEntities.map((name: string, idx: number) => ({
+            // Only the first entity gets the person ID (since ElegeSyncService syncs per person)
+            id: idx === 0 && elegePersonId ? String(elegePersonId) : null,
+            name,
+            sentiment: mention.sentiment || 'neutral',
+        }));
+    }
+
+    return [];
+};
+
+
 export const IntelligenceFeed: React.FC = () => {
     const PAGE_SIZE = 30;
     const TV_PAGE_SIZE = 10;
@@ -482,7 +630,11 @@ export const IntelligenceFeed: React.FC = () => {
             }
 
             if (append) {
-                setMentions(prev => [...prev, ...newData]);
+                setMentions(prev => {
+                    const existingIds = new Set(prev.map(m => m.id));
+                    const uniqueNew = newData.filter(m => !existingIds.has(m.id));
+                    return [...prev, ...uniqueNew];
+                });
             } else {
                 setMentions(newData);
             }
@@ -747,6 +899,7 @@ export const IntelligenceFeed: React.FC = () => {
                                 key={mention.id}
                                 onClick={() => setSelectedMention(mention)}
                                 className={`relative bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden cursor-pointer transition-all hover:border-primary/30 hover:bg-slate-900 group ${selectedMention?.id === mention.id ? 'ring-2 ring-primary border-transparent' : ''}`}
+                                style={{ isolation: 'isolate' }}
                             >
                                 {/* Media Card for TV/Radio */}
                                 {feedTab === 'tv' && (
@@ -785,23 +938,13 @@ export const IntelligenceFeed: React.FC = () => {
                                             </span>
                                         </div>
 
-                                        {/* Person Avatar — bottom right, with sentiment border */}
-                                        {(() => {
-                                            const entities = mention.classification_metadata?.detected_entities || [];
-                                            const personName = entities[0] || '';
-                                            const sentimentColor = mention.sentiment === 'positive' ? '#22c55e' : mention.sentiment === 'negative' ? '#ef4444' : '#6b7280';
-                                            if (!personName) return null;
-                                            const initials = personName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-                                            return (
-                                                <div
-                                                    className="absolute bottom-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white bg-slate-700 shadow-lg"
-                                                    style={{ border: `2px solid ${sentimentColor}` }}
-                                                    title={personName}
-                                                >
-                                                    {initials}
-                                                </div>
-                                            );
-                                        })()}
+                                        {/* Person Avatars — bottom right, with sentiment border + photos */}
+                                        <PersonBubbleGroup
+                                            entities={extractEntityBubbles(mention)}
+                                            size={36}
+                                            maxVisible={3}
+                                            position="bottom-right"
+                                        />
 
                                         {/* Source name — bottom left over gradient */}
                                         <div className="absolute bottom-3 left-3 z-10">
@@ -838,23 +981,13 @@ export const IntelligenceFeed: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Person Avatar — right side */}
-                                        {(() => {
-                                            const entities = mention.classification_metadata?.detected_entities || [];
-                                            const personName = entities[0] || '';
-                                            const sentimentColor = mention.sentiment === 'positive' ? '#22c55e' : mention.sentiment === 'negative' ? '#ef4444' : '#6b7280';
-                                            if (!personName) return null;
-                                            const initials = personName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-                                            return (
-                                                <div
-                                                    className="relative z-10 ml-3 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-slate-700 shadow-lg shrink-0"
-                                                    style={{ border: `2px solid ${sentimentColor}` }}
-                                                    title={personName}
-                                                >
-                                                    {initials}
-                                                </div>
-                                            );
-                                        })()}
+                                        {/* Person Avatars — right side, with photos */}
+                                        <PersonBubbleGroup
+                                            entities={extractEntityBubbles(mention)}
+                                            size={32}
+                                            maxVisible={3}
+                                            position="right"
+                                        />
                                     </div>
                                 )}
 
@@ -919,15 +1052,29 @@ export const IntelligenceFeed: React.FC = () => {
                                                     );
                                                 })}
 
-                                                {/* Monitored Entities Badges */}
-                                                {mention.classification_metadata?.detected_entities?.map((entityId: string) => (
-                                                    entityMap[entityId] && (
-                                                        <span key={entityId} className="flex items-center gap-1 text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
-                                                            <BrainCircuit className="w-3 h-3" />
-                                                            {entityMap[entityId]}
-                                                        </span>
-                                                    )
-                                                ))}
+                                                {/* Monitored Entities — Photo Bubbles */}
+                                                {(() => {
+                                                    const entityBubbles = extractEntityBubbles(mention);
+                                                    if (entityBubbles.length === 0) {
+                                                        // Fallback: show old-style entity badges from monitored_entities
+                                                        return mention.classification_metadata?.detected_entities?.map((entityId: string) => (
+                                                            entityMap[entityId] && (
+                                                                <span key={entityId} className="flex items-center gap-1 text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
+                                                                    <BrainCircuit className="w-3 h-3" />
+                                                                    {entityMap[entityId]}
+                                                                </span>
+                                                            )
+                                                        ));
+                                                    }
+                                                    return (
+                                                        <PersonBubbleGroup
+                                                            entities={entityBubbles}
+                                                            size={24}
+                                                            maxVisible={3}
+                                                            position="inline"
+                                                        />
+                                                    );
+                                                })()}
 
                                                 {mention.theme && (
                                                     <span className="text-xs text-slate-500 flex items-center gap-1">
@@ -1632,16 +1779,29 @@ export const IntelligenceFeed: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Entities */}
-                            {entities.length > 0 && (
-                                <div className="px-4 pb-2 flex flex-wrap gap-1">
-                                    {entities.map((e: string) => entityMap[e] && (
-                                        <span key={e} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
-                                            <BrainCircuit className="w-3 h-3" />{entityMap[e]}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
+                            {/* Entities — Photo Bubbles */}
+                            {(() => {
+                                const entityBubbles = extractEntityBubbles(selectedMention);
+                                if (entityBubbles.length > 0) {
+                                    return (
+                                        <div className="px-4 pb-2">
+                                            <PersonBubbleGroup entities={entityBubbles} size={24} maxVisible={3} position="inline" />
+                                        </div>
+                                    );
+                                }
+                                if (entities.length > 0) {
+                                    return (
+                                        <div className="px-4 pb-2 flex flex-wrap gap-1">
+                                            {entities.map((e: string) => entityMap[e] && (
+                                                <span key={e} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
+                                                    <BrainCircuit className="w-3 h-3" />{entityMap[e]}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
 
                             {/* Comments count */}
                             <div className="px-4 pb-2">
@@ -1713,16 +1873,29 @@ export const IntelligenceFeed: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Entities */}
-                            {entities.length > 0 && (
-                                <div className="px-4 pb-2 flex flex-wrap gap-1">
-                                    {entities.map((e: string) => entityMap[e] && (
-                                        <span key={e} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
-                                            <BrainCircuit className="w-3 h-3" />{entityMap[e]}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
+                            {/* Entities — Photo Bubbles */}
+                            {(() => {
+                                const entityBubbles = extractEntityBubbles(selectedMention);
+                                if (entityBubbles.length > 0) {
+                                    return (
+                                        <div className="px-4 pb-2">
+                                            <PersonBubbleGroup entities={entityBubbles} size={24} maxVisible={3} position="inline" />
+                                        </div>
+                                    );
+                                }
+                                if (entities.length > 0) {
+                                    return (
+                                        <div className="px-4 pb-2 flex flex-wrap gap-1">
+                                            {entities.map((e: string) => entityMap[e] && (
+                                                <span key={e} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-1">
+                                                    <BrainCircuit className="w-3 h-3" />{entityMap[e]}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
 
                             {/* Engagement */}
                             <div className="px-4 pb-3 flex items-center gap-4 text-[11px] text-slate-400">
@@ -1753,24 +1926,57 @@ export const IntelligenceFeed: React.FC = () => {
                     </div>
 
                     <div className="p-6 space-y-8 flex-1">
-                        {/* Monitored Entities Highlight */}
-                        {selectedMention.classification_metadata?.detected_entities && selectedMention.classification_metadata.detected_entities.length > 0 && (
-                            <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/30">
-                                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                    <BrainCircuit className="w-4 h-4" />
-                                    Alvos Detectados
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedMention.classification_metadata.detected_entities.map((entityId: string) => (
-                                        entityMap[entityId] && (
-                                            <span key={entityId} className="text-sm font-bold text-white bg-indigo-500/20 px-2 py-1 rounded border border-indigo-500/30">
-                                                {entityMap[entityId]}
-                                            </span>
-                                        )
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        {/* Monitored Entities / Photo Bubbles Highlight */}
+                        {(() => {
+                            const entityBubbles = extractEntityBubbles(selectedMention);
+                            if (entityBubbles.length > 0) {
+                                return (
+                                    <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/30">
+                                        <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                            <BrainCircuit className="w-4 h-4" />
+                                            Alvos Detectados
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {entityBubbles.map(entity => (
+                                                <div key={entity.id || entity.name} className="flex items-center gap-3">
+                                                    <PersonBubble entityId={entity.id} entityName={entity.name} sentiment={entity.sentiment} size={32} />
+                                                    <div className="min-w-0 flex-1">
+                                                        <span className="text-sm font-bold text-white truncate block">{entity.name}</span>
+                                                        <span className={`text-[10px] uppercase font-bold ${entity.sentiment === 'positive' ? 'text-emerald-400' :
+                                                            entity.sentiment === 'negative' ? 'text-red-400' :
+                                                                'text-slate-400'
+                                                            }`}>
+                                                            {entity.sentiment === 'positive' ? 'Positivo' : entity.sentiment === 'negative' ? 'Negativo' : 'Neutro'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            // Fallback: old entity badges
+                            if (selectedMention.classification_metadata?.detected_entities?.length) {
+                                return (
+                                    <div className="p-4 rounded-lg bg-indigo-950/30 border border-indigo-500/30">
+                                        <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <BrainCircuit className="w-4 h-4" />
+                                            Alvos Detectados
+                                        </h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedMention.classification_metadata.detected_entities.map((entityId: string) => (
+                                                entityMap[entityId] && (
+                                                    <span key={entityId} className="text-sm font-bold text-white bg-indigo-500/20 px-2 py-1 rounded border border-indigo-500/30">
+                                                        {entityMap[entityId]}
+                                                    </span>
+                                                )
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
 
                         {/* Mídias Geradas — Carousel (hidden for TV/Radio — media is in the floating card) */}
                         {feedTab !== 'tv' && feedTab !== 'radio' && (() => {

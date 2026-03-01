@@ -1,5 +1,6 @@
 import { NodeHandler, ExecutionContext, NodeOutput } from '../NodeHandler';
 import { supabase } from '../../config/supabase';
+import { SyncWatermarkService } from '../../services/SyncWatermarkService';
 import axios from 'axios';
 
 const TWITTER_API_BASE = 'https://api.x.com/2';
@@ -15,6 +16,8 @@ interface TwitterConfig {
 }
 
 export class TwitterHandler implements NodeHandler {
+    private watermarkService = new SyncWatermarkService(supabase);
+
     async execute(node: any, context: ExecutionContext): Promise<NodeOutput> {
         await context.logger('[TwitterHandler] Starting Twitter/X data collection...');
 
@@ -36,7 +39,7 @@ export class TwitterHandler implements NodeHandler {
 
             switch (operation) {
                 case 'search_recent':
-                    result = await this.searchRecent(config, query, maxResults, context);
+                    result = await this.searchRecent(config, query, maxResults, context, context.activationId);
                     break;
                 case 'search_all':
                     result = await this.searchAll(config, query, maxResults, context);
@@ -51,7 +54,7 @@ export class TwitterHandler implements NodeHandler {
                     result = await this.userLookup(config, node.data.twitterUsername, context);
                     break;
                 default:
-                    result = await this.searchRecent(config, query, maxResults, context);
+                    result = await this.searchRecent(config, query, maxResults, context, context.activationId);
             }
 
             return result;
@@ -190,7 +193,7 @@ export class TwitterHandler implements NodeHandler {
 
     // ────────────── API Methods ──────────────
 
-    private async searchRecent(config: TwitterConfig, query: string, maxResults: number, context: ExecutionContext): Promise<NodeOutput> {
+    private async searchRecent(config: TwitterConfig, query: string, maxResults: number, context: ExecutionContext, activationId?: string): Promise<NodeOutput> {
         // Twitter API v2 requires max_results between 10-100
         const safeMax = Math.max(10, Math.min(100, maxResults));
 
@@ -202,8 +205,34 @@ export class TwitterHandler implements NodeHandler {
             'expansions': 'author_id,referenced_tweets.id',
         });
 
+        // Incremental sync: use since_id or start_time from watermark
+        if (activationId) {
+            const watermark = await this.watermarkService.get(activationId, 'twitter', query.substring(0, 100));
+            if (watermark?.lastItemId) {
+                params.set('since_id', watermark.lastItemId);
+                await context.logger(`[TwitterHandler] 🗓 Incremental: since_id=${watermark.lastItemId}`);
+            } else if (watermark?.lastSyncAt) {
+                // Twitter requires start_time to be at least 10 seconds ago and within last 7 days
+                const startTime = this.watermarkService.getStartTime(watermark, 24);
+                params.set('start_time', startTime);
+                await context.logger(`[TwitterHandler] 🗓 Incremental: start_time=${startTime}`);
+            }
+        }
+
         const response = await this.apiGet(`/tweets/search/recent?${params}`, config, context);
-        return this.formatTweetResponse(response, 'search_recent', context);
+        const result = await this.formatTweetResponse(response, 'search_recent', context);
+
+        // Save watermark with the newest tweet ID
+        if (activationId && result.success && result.data?.items?.length > 0) {
+            const newestTweet = result.data.items[0]; // Twitter returns newest first
+            await this.watermarkService.set(activationId, 'twitter', {
+                sourceKey: query.substring(0, 100),
+                lastItemId: newestTweet.id,
+                lastItemDate: new Date(newestTweet.published_at),
+            });
+        }
+
+        return result;
     }
 
     private async searchAll(config: TwitterConfig, query: string, maxResults: number, context: ExecutionContext): Promise<NodeOutput> {
@@ -393,11 +422,33 @@ export class TwitterHandler implements NodeHandler {
 
         await context.logger(`[TwitterHandler] ✅ ${items.length} tweets collected (${operation}). Next token: ${meta.next_token ? 'yes' : 'no'}`);
 
+        // DEDUP: Filter out tweets already in intelligence_feed for this activation
+        let filteredItems = items;
+        if (items.length > 0 && context.activationId) {
+            const tweetUrls = items.map((t: any) => t.url).filter(Boolean);
+            if (tweetUrls.length > 0) {
+                const { data: existingRows } = await supabase
+                    .from('intelligence_feed')
+                    .select('url')
+                    .in('url', tweetUrls)
+                    .eq('activation_id', context.activationId);
+
+                if (existingRows && existingRows.length > 0) {
+                    const existingUrls = new Set(existingRows.map((r: any) => r.url));
+                    filteredItems = items.filter((t: any) => !existingUrls.has(t.url));
+                    const skipped = items.length - filteredItems.length;
+                    if (skipped > 0) {
+                        await context.logger(`[TwitterHandler] ⏭ Dedup: skipped ${skipped} already-ingested tweet(s), keeping ${filteredItems.length}.`);
+                    }
+                }
+            }
+        }
+
         return {
             success: true,
             data: {
-                items,
-                count: items.length,
+                items: filteredItems,
+                count: filteredItems.length,
                 total_results: meta.result_count || items.length,
                 next_token: meta.next_token || null,
                 operation,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Target, Hash, Users, AlertTriangle, Search } from 'lucide-react';
+import { Target, Hash, Users, AlertTriangle, Search, Instagram, Music2, ExternalLink } from 'lucide-react';
 import { useUserActivations } from '@/hooks/useUserActivations';
 
 interface AlvoItem {
@@ -9,12 +9,24 @@ interface AlvoItem {
     activations: string[];
 }
 
+interface LinkedChannel {
+    elege_channel_id: number;
+    channel_kind: string;
+    channel_title: string;
+    activation_name: string;
+    url?: string;
+    username?: string;
+    is_enabled?: boolean;
+}
+
 export const AlvosMonitorados: React.FC = () => {
     const [alvos, setAlvos] = useState<AlvoItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [hasApproved, setHasApproved] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const { activationIds, loading: activationsLoading } = useUserActivations();
+    const [linkedChannels, setLinkedChannels] = useState<LinkedChannel[]>([]);
+    const [channelsLoading, setChannelsLoading] = useState(false);
 
     // Re-fetch when activations resolve
     useEffect(() => {
@@ -88,6 +100,67 @@ export const AlvosMonitorados: React.FC = () => {
         }
     };
 
+    // Fetch linked Instagram/TikTok channels
+    useEffect(() => {
+        if (activationsLoading || activationIds.length === 0) return;
+        fetchLinkedChannels();
+    }, [activationIds, activationsLoading]);
+
+    const fetchLinkedChannels = async () => {
+        setChannelsLoading(true);
+        try {
+            // Get activation names for labeling
+            const { data: activationsData } = await supabase
+                .from('activations')
+                .select('id, name')
+                .in('id', activationIds)
+                .eq('status', 'active');
+            const activationMap = new Map((activationsData || []).map(a => [a.id, a.name]));
+
+            // Get channel-activation links for user's activations
+            const { data: links } = await supabase
+                .from('channel_activations')
+                .select('elege_channel_id, channel_kind, channel_title, activation_id')
+                .in('activation_id', activationIds);
+
+            if (!links || links.length === 0) {
+                setLinkedChannels([]);
+                setChannelsLoading(false);
+                return;
+            }
+
+            // Fetch full channel details from Elege API
+            const backendUrl = import.meta.env.VITE_API_URL || '';
+            let elegeChannels: any[] = [];
+            try {
+                const res = await fetch(`${backendUrl}/api/elege/channels?kind=instagram,tiktok`);
+                const data = await res.json();
+                elegeChannels = data.channels || [];
+            } catch { /* fallback to just link data */ }
+
+            const channelMap = new Map(elegeChannels.map((c: any) => [c.id, c]));
+
+            const result: LinkedChannel[] = links.map((link: any) => {
+                const ch = channelMap.get(link.elege_channel_id);
+                return {
+                    elege_channel_id: link.elege_channel_id,
+                    channel_kind: link.channel_kind,
+                    channel_title: link.channel_title || ch?.title || 'Canal',
+                    activation_name: activationMap.get(link.activation_id) || 'Ativação',
+                    url: ch?.url || '',
+                    username: ch?.username || '',
+                    is_enabled: ch?.is_enabled ?? true,
+                };
+            });
+
+            setLinkedChannels(result);
+        } catch (error) {
+            console.error('[AlvosMonitorados] Error fetching linked channels:', error);
+        } finally {
+            setChannelsLoading(false);
+        }
+    };
+
     const filtered = alvos.filter(a => {
         if (!searchQuery) return true;
         return a.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -95,6 +168,9 @@ export const AlvosMonitorados: React.FC = () => {
 
     const people = filtered.filter(a => a.type === 'person');
     const keywords = filtered.filter(a => a.type === 'keyword');
+
+    const igChannels = linkedChannels.filter(c => c.channel_kind === 'instagram');
+    const ttChannels = linkedChannels.filter(c => c.channel_kind === 'tiktok');
 
     if (loading || activationsLoading) {
         return (
@@ -229,6 +305,113 @@ export const AlvosMonitorados: React.FC = () => {
 
             {filtered.length === 0 && searchQuery && (
                 <div className="py-8 text-center text-slate-500 text-sm">Nenhum alvo encontrado para "{searchQuery}".</div>
+            )}
+
+            {/* Instagram Channels */}
+            {igChannels.length > 0 && (
+                <div className="space-y-3">
+                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <Instagram className="w-4 h-4 text-pink-400" />
+                        Instagram ({igChannels.length})
+                    </h2>
+                    <div className="rounded-lg border border-pink-500/20 overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-pink-500/5">
+                                <tr>
+                                    <th className="text-left px-4 py-2.5 text-pink-400/70 font-medium text-xs">Canal</th>
+                                    <th className="text-left px-4 py-2.5 text-pink-400/70 font-medium text-xs hidden md:table-cell">URL</th>
+                                    <th className="text-left px-4 py-2.5 text-pink-400/70 font-medium text-xs">Ativação</th>
+                                    <th className="text-center px-4 py-2.5 text-pink-400/70 font-medium text-xs">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-pink-500/10">
+                                {igChannels.map((ch, idx) => (
+                                    <tr key={`${ch.elege_channel_id}-${idx}`} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
+                                                <span className="text-white font-medium">{ch.channel_title}</span>
+                                                {ch.username && <span className="text-[11px] text-slate-500">@{ch.username}</span>}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 hidden md:table-cell">
+                                            {ch.url ? (
+                                                <a href={ch.url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 truncate max-w-[180px]">
+                                                    {ch.url} <ExternalLink className="w-3 h-3 shrink-0" />
+                                                </a>
+                                            ) : <span className="text-xs text-slate-600">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">{ch.activation_name}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${ch.is_enabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${ch.is_enabled ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                                                {ch.is_enabled ? 'Ativo' : 'Inativo'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* TikTok Channels */}
+            {ttChannels.length > 0 && (
+                <div className="space-y-3">
+                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <Music2 className="w-4 h-4 text-cyan-400" />
+                        TikTok ({ttChannels.length})
+                    </h2>
+                    <div className="rounded-lg border border-cyan-500/20 overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-cyan-500/5">
+                                <tr>
+                                    <th className="text-left px-4 py-2.5 text-cyan-400/70 font-medium text-xs">Canal</th>
+                                    <th className="text-left px-4 py-2.5 text-cyan-400/70 font-medium text-xs hidden md:table-cell">URL</th>
+                                    <th className="text-left px-4 py-2.5 text-cyan-400/70 font-medium text-xs">Ativação</th>
+                                    <th className="text-center px-4 py-2.5 text-cyan-400/70 font-medium text-xs">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-cyan-500/10">
+                                {ttChannels.map((ch, idx) => (
+                                    <tr key={`${ch.elege_channel_id}-${idx}`} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <Music2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                                                <span className="text-white font-medium">{ch.channel_title}</span>
+                                                {ch.username && <span className="text-[11px] text-slate-500">@{ch.username}</span>}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 hidden md:table-cell">
+                                            {ch.url ? (
+                                                <a href={ch.url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 truncate max-w-[180px]">
+                                                    {ch.url} <ExternalLink className="w-3 h-3 shrink-0" />
+                                                </a>
+                                            ) : <span className="text-xs text-slate-600">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">{ch.activation_name}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${ch.is_enabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${ch.is_enabled ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                                                {ch.is_enabled ? 'Ativo' : 'Inativo'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Loading channels indicator */}
+            {channelsLoading && (
+                <div className="py-4 text-center text-slate-500 text-sm">Carregando canais vinculados...</div>
             )}
         </div>
     );

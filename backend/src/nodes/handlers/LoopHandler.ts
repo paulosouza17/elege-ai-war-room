@@ -1,4 +1,5 @@
 import { NodeHandler, ExecutionContext, NodeOutput } from '../NodeHandler';
+import { supabase } from '../../config/supabase';
 
 /**
  * LoopHandler — iterates over a list variable from upstream nodes.
@@ -89,6 +90,29 @@ export class LoopHandler implements NodeHandler {
         if (config.loopOnce && items.length > 1) {
             await context.logger(`[Loop] ⚡ Once mode enabled — processing only 1 of ${items.length} items`);
             items = [items[0]];
+        }
+
+        // Pre-filter: remove items already in processed_articles (for portal flows)
+        // This ensures the maxIterations cap applies to NEW items only
+        if (items.length > 0 && context.activationId && items[0]?.url) {
+            const urls = items.map((i: any) => i.url).filter((u: string) => u && u.startsWith('http'));
+            if (urls.length > 0) {
+                const { data: existing } = await supabase
+                    .from('processed_articles')
+                    .select('url')
+                    .in('url', urls)
+                    .eq('activation_id', context.activationId);
+
+                if (existing && existing.length > 0) {
+                    const existingUrls = new Set(existing.map((r: any) => r.url));
+                    const before = items.length;
+                    items = items.filter((i: any) => !existingUrls.has(i.url));
+                    const filtered = before - items.length;
+                    if (filtered > 0) {
+                        await context.logger(`[Loop] ⏭ Pre-filtered ${filtered} already-processed item(s), ${items.length} new remaining`);
+                    }
+                }
+            }
         }
 
         // Max iterations cap (default: 5) to prevent timeout on large sets
