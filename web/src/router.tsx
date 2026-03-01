@@ -30,6 +30,7 @@ import { EntityWatchlist } from './pages/EntityWatchlist';
 import { PublicReport } from './pages/PublicReport';
 import MediaOutlets from './pages/MediaOutlets';
 import { PublicDashboard } from './pages/PublicDashboard';
+import { Apresentacao } from './pages/Apresentacao';
 
 export const router = createBrowserRouter([
     {
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
     {
         path: '/dashboard/:token',
         element: <PublicDashboard />,
+    },
+    {
+        path: '/apresentacao',
+        element: <Apresentacao />,
     },
     {
         path: '/login',
