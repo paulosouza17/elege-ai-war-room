@@ -3,8 +3,8 @@ module.exports = {
         {
             name: 'warroom-backend',
             cwd: '/opt/warroom/backend',
-            script: 'node_modules/.bin/tsx',
-            args: 'src/server.ts',
+            script: 'src/server.ts',
+            interpreter: '/opt/warroom/node_modules/.bin/tsx',
             instances: 1,
             autorestart: true,
             watch: false,
