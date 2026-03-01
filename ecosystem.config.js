@@ -4,7 +4,7 @@ module.exports = {
             name: 'warroom-backend',
             cwd: '/opt/warroom/backend',
             script: 'src/server.ts',
-            interpreter: '/opt/warroom/node_modules/.bin/tsx',
+            interpreter: 'tsx',
             instances: 1,
             autorestart: true,
             watch: false,
