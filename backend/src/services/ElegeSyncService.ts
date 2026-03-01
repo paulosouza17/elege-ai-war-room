@@ -98,7 +98,7 @@ export class ElegeSyncService {
             }
         }
 
-        // 4. Sync linked Instagram/TikTok channels
+        // 4. Sync linked channels (Instagram, TV, Radio, YouTube, Website, etc.)
         await this.syncChannels(activation);
     }
 
@@ -163,13 +163,15 @@ export class ElegeSyncService {
      */
     private mapSourceType(channelKind: string | number | undefined): string {
         const kind = String(channelKind || '').toLowerCase();
-        if (kind === 'tv' || kind === '2') return 'tv';
-        if (kind === 'radio' || kind === '3') return 'radio';
-        if (kind === 'youtube') return 'tv'; // YouTube channels = audiovisual → tv
-        if (kind === 'instagram') return 'instagram';
-        if (kind === 'tiktok') return 'tiktok';
-        if (['social', 'twitter', 'facebook', 'x'].includes(kind) || kind === '4') return 'social_media';
-        if (kind === 'whatsapp') return 'whatsapp';
+        // Elege API numeric kinds: 0=tv, 1=radio, 4=website, 7=whatsapp, 9=youtube, 11=instagram
+        if (kind === 'tv' || kind === '0') return 'tv';
+        if (kind === 'radio' || kind === '1') return 'radio';
+        if (kind === 'youtube' || kind === '9') return 'tv'; // YouTube channels = audiovisual → tv
+        if (kind === 'website' || kind === '4') return 'portal'; // Elege website channels → portal
+        if (kind === 'instagram' || kind === '11') return 'social_media';
+        if (kind === 'tiktok') return 'social_media';
+        if (['social', 'twitter', 'facebook', 'x'].includes(kind)) return 'social_media';
+        if (kind === 'whatsapp' || kind === '7') return 'whatsapp';
         if (['news', 'web', 'site', 'portal'].includes(kind)) return 'portal';
         return 'portal'; // default fallback
     }
@@ -188,9 +190,10 @@ export class ElegeSyncService {
     }
 
     /**
-     * Sync linked Instagram/TikTok channels for an activation.
+     * Sync linked channels for an activation.
      * Queries channel_activations for channels linked to this activation,
      * then fetches latest posts/mentions from each channel via the Elege API.
+     * Supports all channel kinds: instagram, tiktok, tv, radio, youtube, website.
      */
     private async syncChannels(activation: any) {
         const activationLabel = activation.name || activation.id;
@@ -207,16 +210,17 @@ export class ElegeSyncService {
                 return;
             }
 
-            // Filter to only instagram/tiktok channels
-            const socialChannels = (links || []).filter(l =>
-                ['instagram', 'tiktok'].includes(l.channel_kind?.toLowerCase())
-            );
+            // Sync ALL channel kinds (not just social)
+            const channels = (links || []).filter(l => l.elege_channel_id);
 
-            if (socialChannels.length === 0) return;
+            if (channels.length === 0) return;
 
-            console.log(`[ElegeSync] Syncing ${socialChannels.length} Instagram/TikTok channel(s) for "${activationLabel}"`);
+            // Group by kind for logging
+            const kindCounts: Record<string, number> = {};
+            channels.forEach(c => { const k = c.channel_kind || 'unknown'; kindCounts[k] = (kindCounts[k] || 0) + 1; });
+            console.log(`[ElegeSync] Syncing ${channels.length} channel(s) for "${activationLabel}":`, JSON.stringify(kindCounts));
 
-            for (const link of socialChannels) {
+            for (const link of channels) {
                 try {
                     await this.fetchAndStoreChannelPosts(link.elege_channel_id, link.channel_kind, link.channel_title, activation);
                 } catch (err: any) {
