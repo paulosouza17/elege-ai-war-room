@@ -168,8 +168,8 @@ export class ElegeSyncService {
         if (kind === 'radio' || kind === '1') return 'radio';
         if (kind === 'youtube' || kind === '9') return 'tv'; // YouTube channels = audiovisual → tv
         if (kind === 'website' || kind === '4') return 'portal'; // Elege website channels → portal
-        if (kind === 'instagram' || kind === '11') return 'social_media';
-        if (kind === 'tiktok') return 'social_media';
+        if (kind === 'instagram' || kind === '11') return 'instagram';
+        if (kind === 'tiktok') return 'tiktok';
         if (['social', 'twitter', 'facebook', 'x'].includes(kind)) return 'social_media';
         if (kind === 'whatsapp' || kind === '7') return 'whatsapp';
         if (['news', 'web', 'site', 'portal'].includes(kind)) return 'portal';

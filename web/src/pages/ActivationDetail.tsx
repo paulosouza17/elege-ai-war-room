@@ -29,7 +29,7 @@ export const ActivationDetail: React.FC = () => {
     const navigate = useNavigate();
     const [activation, setActivation] = useState<Activation | null>(null);
     const [files, setFiles] = useState<ActivationFile[]>([]);
-    const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'scenario'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'files'>('overview');
     const [loading, setLoading] = useState(true);
 
     // Modal State
@@ -282,13 +282,7 @@ export const ActivationDetail: React.FC = () => {
                     <FolderOpen className="w-4 h-4" />
                     Arquivos & Documentos
                 </button>
-                <button
-                    onClick={() => setActiveTab('scenario')}
-                    className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'scenario' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-white'}`}
-                >
-                    <Lightbulb className="w-4 h-4" />
-                    Criação de Cenário Base
-                </button>
+                {/* FUTURO: Tab Cenário Base desativada temporariamente */}
             </div>
 
             {/* Content */}
@@ -378,9 +372,11 @@ export const ActivationDetail: React.FC = () => {
                     </div>
                 )}
 
+                {/* FUTURO: Cenário Base desativado temporariamente
                 {activeTab === 'scenario' && id && (
                     <ScenarioBaseBuilder activationId={id} activationName={activation.name} />
                 )}
+                */}
             </div>
 
             {/* Analysis Result Modal */}

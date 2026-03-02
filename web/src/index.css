@@ -68,3 +68,26 @@
 .no-scrollbar {
   scrollbar-width: none;
 }
+
+/* Portal screenshot scroll animation — smooth vertical pan */
+@keyframes portalScreenshotScroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(0);
+  }
+
+  80% {
+    transform: translateY(calc(-100% + 180px));
+  }
+
+  85% {
+    transform: translateY(calc(-100% + 180px));
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}

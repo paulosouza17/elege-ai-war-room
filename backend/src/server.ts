@@ -292,6 +292,27 @@ app.post('/api/elege/channels/:id/activations', async (req, res) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// Screenshot Proxy — serves locally cached article screenshots
+// ═══════════════════════════════════════════════════════════
+import path from 'path';
+import fs from 'fs';
+const SCREENSHOT_DIR = path.resolve(process.cwd(), 'uploads', 'screenshots');
+app.get('/api/screenshots/:filename', (req, res) => {
+    const { filename } = req.params;
+    // Sanitize — only allow characters in our naming scheme
+    if (!/^screenshot-[a-f0-9]+\.png$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename' });
+    }
+    const filepath = path.join(SCREENSHOT_DIR, filename);
+    if (!fs.existsSync(filepath)) {
+        return res.status(404).json({ error: 'Screenshot not found' });
+    }
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 days
+    fs.createReadStream(filepath).pipe(res);
+});
+
 app.use('/api/v1', (req, res) => {
     res.json({ message: 'War Room API v1' });
 });

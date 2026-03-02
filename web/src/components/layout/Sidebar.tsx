@@ -36,7 +36,7 @@ export const Sidebar: React.FC = () => {
         { icon: Zap, label: 'Ativações', to: '/activations', roles: ['admin', 'analyst', 'operator', 'viewer'] },
         { icon: AlertTriangle, label: 'Gestão de Crise', to: '/crisis', roles: ['admin', 'analyst', 'operator', 'viewer'] },
         { icon: Users, label: 'Alvos Monitorados', to: '/entities', roles: ['admin', 'analyst'] },
-        { icon: BrainCircuit, label: 'Cenários', to: '/scenarios', roles: ['admin', 'analyst'] },
+        // FUTURO: { icon: BrainCircuit, label: 'Cenários', to: '/scenarios', roles: ['admin', 'analyst'] },
         { icon: ShieldAlert, label: 'Ameaças', to: '/threats', roles: ['admin', 'analyst', 'operator', 'viewer'] },
         { icon: Database, label: 'Fontes de Dados', to: '/sources', roles: ['admin', 'analyst'] },
         { icon: Tv, label: 'Veículos de Mídia', to: '/media-outlets', roles: ['admin'] },

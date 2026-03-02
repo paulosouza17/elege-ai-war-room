@@ -101,22 +101,23 @@ export const router = createBrowserRouter([
                 path: 'crisis/:id',
                 element: <CrisisDetail />,
             },
-            {
-                path: 'scenarios',
-                element: (
-                    <RequireRole roles={['admin', 'analyst']}>
-                        <ScenarioEngine />
-                    </RequireRole>
-                ),
-            },
-            {
-                path: 'scenarios/:id',
-                element: (
-                    <RequireRole roles={['admin', 'analyst']}>
-                        <SimulationDetail />
-                    </RequireRole>
-                ),
-            },
+            // FUTURO: Cenários desativados temporariamente
+            // {
+            //     path: 'scenarios',
+            //     element: (
+            //         <RequireRole roles={['admin', 'analyst']}>
+            //             <ScenarioEngine />
+            //         </RequireRole>
+            //     ),
+            // },
+            // {
+            //     path: 'scenarios/:id',
+            //     element: (
+            //         <RequireRole roles={['admin', 'analyst']}>
+            //             <SimulationDetail />
+            //         </RequireRole>
+            //     ),
+            // },
             {
                 path: 'threats',
                 element: <ThreatAssessment />,

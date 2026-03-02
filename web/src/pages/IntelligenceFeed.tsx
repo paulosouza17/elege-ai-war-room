@@ -59,6 +59,7 @@ interface Mention {
     created_at: string;
     status: 'pending' | 'processed' | 'archived' | 'escalated';
     bundle_id?: string | null;
+    media_url?: string | null;
     classification_metadata: {
         reasoning?: string;
         provider?: string;
@@ -639,7 +640,7 @@ export const IntelligenceFeed: React.FC = () => {
         } else if (feedTab === 'whatsapp') {
             query = query.in('source_type', WHATSAPP_SOURCE_TYPES);
         } else if (feedTab === 'instagram') {
-            query = query.or('source.in.(instagram,Instagram),source_type.in.(instagram,Instagram)');
+            query = query.or('source.in.(instagram,Instagram),source_type.in.(instagram,Instagram),classification_metadata->>channel_kind.eq.instagram,classification_metadata->>channel_kind.eq.11');
         } else if (feedTab === 'tiktok') {
             query = query.or('source.in.(tiktok,TikTok),source_type.in.(tiktok,TikTok)');
         } else {
@@ -647,7 +648,7 @@ export const IntelligenceFeed: React.FC = () => {
             for (const s of [...SOCIAL_SOURCES, ...INSTAGRAM_SOURCE_TYPES, ...TIKTOK_SOURCE_TYPES]) {
                 query = query.neq('source', s);
             }
-            query = query.not('source_type', 'in', '(tv,radio,whatsapp,instagram,tiktok)');
+            query = query.not('source_type', 'in', '(tv,radio,whatsapp,instagram,tiktok,social_media)');
         }
 
         if (filter === 'high_risk') {
@@ -1094,6 +1095,44 @@ export const IntelligenceFeed: React.FC = () => {
                                             maxVisible={3}
                                             position="right"
                                         />
+                                    </div>
+                                )}
+
+                                {/* Portal Screenshot Preview Card */}
+                                {feedTab === 'portais' && mention.media_url && (
+                                    <div className="relative w-full h-[180px] overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-b border-slate-800/50 group/screenshot">
+                                        {/* Screenshot image with scroll animation */}
+                                        <img
+                                            src={mention.media_url}
+                                            alt="Screenshot da matéria"
+                                            className="absolute left-0 w-full object-cover object-top"
+                                            style={{
+                                                minHeight: '100%',
+                                                animation: 'portalScreenshotScroll 12s ease-in-out infinite',
+                                            }}
+                                            onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                                        />
+                                        {/* Top gradient fade */}
+                                        <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-slate-900/60 to-transparent z-[1]" />
+                                        {/* Bottom gradient fade */}
+                                        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent z-[1]" />
+                                        {/* Portal badge — top left */}
+                                        <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                                            <span className="text-[10px] font-bold px-2 py-1 rounded-md border backdrop-blur-sm text-sky-200 bg-sky-950/80 border-sky-500/50">
+                                                🌐 Portal
+                                            </span>
+                                        </div>
+                                        {/* Person Avatars — bottom right */}
+                                        <PersonBubbleGroup
+                                            entities={extractEntityBubbles(mention, nameToElegeId)}
+                                            size={32}
+                                            maxVisible={3}
+                                            position="bottom-right"
+                                        />
+                                        {/* Source name — bottom left */}
+                                        <div className="absolute bottom-3 left-3 z-10">
+                                            <span className="text-[11px] font-medium text-white/80">{mention.source}</span>
+                                        </div>
                                     </div>
                                 )}
 
@@ -2207,8 +2246,46 @@ export const IntelligenceFeed: React.FC = () => {
                             return null;
                         })()}
 
-                        {/* Mídias Geradas — Carousel (hidden for TV/Radio/Instagram — media is in the floating card) */}
-                        {feedTab !== 'tv' && feedTab !== 'radio' && feedTab !== 'instagram' && (() => {
+                        {/* Portal Screenshot Preview — in detail panel */}
+                        {feedTab === 'portais' && selectedMention.media_url && (
+                            <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                                <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-2">
+                                    <Globe className="w-4 h-4" />
+                                    Screenshot da Matéria
+                                </h3>
+                                <div className="relative w-full h-[300px] overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900">
+                                    <img
+                                        src={selectedMention.media_url}
+                                        alt="Screenshot da matéria"
+                                        className="absolute left-0 w-full object-cover object-top"
+                                        style={{
+                                            minHeight: '100%',
+                                            animation: 'portalScreenshotScroll 14s ease-in-out infinite',
+                                        }}
+                                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                                    />
+                                    {/* Top gradient */}
+                                    <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-slate-900/50 to-transparent z-[1]" />
+                                    {/* Bottom gradient */}
+                                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-900/80 to-transparent z-[1]" />
+                                </div>
+                                {selectedMention.url && (
+                                    <a
+                                        href={selectedMention.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] text-sky-400 hover:text-sky-300 flex items-center gap-1 mt-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <Link2 className="w-3 h-3" />
+                                        Abrir matéria original
+                                    </a>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Mídias Geradas — Carousel (hidden for TV/Radio/Instagram/Portals — media is in the floating card) */}
+                        {feedTab !== 'tv' && feedTab !== 'radio' && feedTab !== 'instagram' && feedTab !== 'portais' && (() => {
                             const assets = selectedMention.classification_metadata?.assets || [];
                             const postId = selectedMention.classification_metadata?.elege_post_id;
                             if (assets.length === 0 || !postId) return null;

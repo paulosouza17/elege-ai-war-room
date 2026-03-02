@@ -1,6 +1,7 @@
 import { NodeHandler, ExecutionContext, NodeOutput } from '../NodeHandler';
 import { supabase } from '../../config/supabase';
 import { checkDuplicates } from '../../services/deduplication';
+import { captureScreenshotAsync } from '../../services/screenshotService';
 
 export class PublishHandler implements NodeHandler {
     async execute(node: any, context: ExecutionContext): Promise<NodeOutput> {
@@ -220,12 +221,31 @@ export class PublishHandler implements NodeHandler {
         }
 
         // 4. INSERT FEED ITEMS (only non-duplicates)
-        const { error } = await supabase
+        const { data: insertedRows, error } = await supabase
             .from('intelligence_feed')
-            .insert(dedupedFeedItems);
+            .insert(dedupedFeedItems)
+            .select('id, url, source_type, media_url');
 
         if (error) {
             return { success: false, error: `DB Insert Error: ${error.message}` };
+        }
+
+        // 5. ASYNC SCREENSHOT CAPTURE — fire-and-forget for portal items
+        if (insertedRows && insertedRows.length > 0) {
+            const portalItems = insertedRows.filter((row: any) =>
+                (row.source_type === 'portal' || row.source_type === 'document') &&
+                row.url &&
+                row.url.startsWith('http') &&
+                !row.media_url
+            );
+            if (portalItems.length > 0) {
+                await context.logger(`[PublishHandler] 📸 Triggering async screenshot capture for ${portalItems.length} portal item(s)...`);
+                for (const item of portalItems) {
+                    captureScreenshotAsync(item.id, item.url, supabase).catch(err =>
+                        console.error(`[PublishHandler] Screenshot async error for ${item.id}:`, err.message)
+                    );
+                }
+            }
         }
 
         // 5. UPDATE ACTIVATION FILES (Traceability)
