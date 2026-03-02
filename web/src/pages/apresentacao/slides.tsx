@@ -152,39 +152,70 @@ export const SlideCover = () => (
     </div>
 );
 
-/* ════════════════ SLIDE 2: Evolution ════════════════ */
-export const SlideEvolution = () => (
-    <SlideLayout title="A Evolução" subtitle="3 anos de desenvolvimento contínuo — de ferramenta de gabinete para centro de comando político." icon={<IconTrendingUp size={36} />}>
-        <div style={{ position: 'relative', display: 'flex', gap: 0 }}>
-            <div style={{ position: 'absolute', top: 28, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${T.primary}, ${T.purple}, ${T.accent})` }} />
-            {[
-                { year: '2023', title: 'Gabinete Parlamentar', desc: 'Monitoramento básico de TV e rádio para assessores de parlamentares', color: T.primary, icon: <IconMonitor size={18} /> },
-                { year: '2024', title: 'Expansão Multicanal', desc: 'Portais, redes sociais, IA de sentimento e classificação automática', color: T.purple, icon: <IconBrain size={18} /> },
-                { year: '2025', title: 'War Room', desc: 'Arsenal completo: ameaças, crises, automação, entidades, planos de resposta com IA', color: T.accent, icon: <IconShield size={18} /> },
-            ].map((item, i) => (
-                <div key={i} style={{ flex: 1, textAlign: 'center', position: 'relative', paddingTop: 52 }}>
-                    <div style={{ position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)', width: 22, height: 22, borderRadius: '50%', background: item.color, border: `3px solid ${T.bg}`, zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.bg }} />
+/* ════════════════ SLIDE 2: Evolution (Split: Timeline + Monitoramento) ════════════════ */
+export const SlideEvolution: React.FC<{ isActive?: boolean }> = () => (
+    <div style={{ maxWidth: 1100, width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+        {/* LEFT: Vertical Timeline */}
+        <div style={{ animation: 'slide-right 0.7s cubic-bezier(0.16,1,0.3,1) both' }}>
+            <div style={{ fontSize: 10, color: T.accent, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16 }}>TRAJETÓRIA</div>
+            <h2 style={{ fontSize: 36, fontWeight: 800, color: T.white, lineHeight: 1.15, letterSpacing: -1, margin: '0 0 28px' }}>3 anos de evolução contínua</h2>
+            <div style={{ position: 'relative', paddingLeft: 28 }}>
+                {/* Vertical line */}
+                <div style={{ position: 'absolute', left: 8, top: 8, bottom: 8, width: 2, background: `linear-gradient(180deg, ${T.primary}, ${T.purple}, ${T.accent})` }} />
+                {[
+                    { year: '2023', title: 'Gabinete Parlamentar', desc: 'Monitoramento básico de TV e rádio', color: T.primary, icon: <IconMonitor size={16} /> },
+                    { year: '2024', title: 'Expansão Multicanal', desc: 'Portais, redes sociais, IA de sentimento', color: T.purple, icon: <IconBrain size={16} /> },
+                    { year: '2025', title: 'War Room', desc: 'Arsenal completo: ameaças, crises, automação, planos de resposta com IA', color: T.accent, icon: <IconShield size={16} /> },
+                ].map((item, i) => (
+                    <div key={i} style={{ position: 'relative', marginBottom: i < 2 ? 28 : 0, animation: `slide-up 0.6s cubic-bezier(0.16,1,0.3,1) ${0.3 + i * 0.2}s both` }}>
+                        {/* Dot */}
+                        <div style={{ position: 'absolute', left: -24, top: 4, width: 14, height: 14, borderRadius: '50%', background: item.color, border: `3px solid ${T.bg}`, zIndex: 2 }} />
+                        <div style={{ fontSize: 22, fontWeight: 800, color: item.color, fontFamily: T.mono }}>{item.year}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.white, marginTop: 2 }}>{item.title}</div>
+                        <div style={{ fontSize: 11, color: T.muted, marginTop: 2, lineHeight: 1.5 }}>{item.desc}</div>
                     </div>
-                    <div style={{ color: item.color, marginBottom: 8 }}>{item.icon}</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: item.color, fontFamily: T.mono }}>{item.year}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: T.white, marginTop: 8 }}>{item.title}</div>
-                    <div style={{ fontSize: 12, color: T.muted, marginTop: 6, lineHeight: 1.6, padding: '0 8px' }}>{item.desc}</div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
-        <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            {[
-                { n: '7', l: 'Fontes de Mídia', c: T.primary }, { n: '19+', l: 'Integrações', c: T.cyan },
-                { n: '28', l: 'Telas', c: T.purple }, { n: '24/7', l: 'Automação', c: T.accent },
-            ].map(k => (
-                <div key={k.l} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: T.mono, fontSize: 24, fontWeight: 800, color: k.c }}>{k.n}</div>
-                    <div style={{ fontSize: 10, color: T.dim, textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 }}>{k.l}</div>
+
+        {/* RIGHT: What we monitor */}
+        <div style={{ animation: 'slide-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>
+            <div style={{ fontSize: 10, color: T.primary, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16 }}>O QUE MONITORAMOS</div>
+            <h2 style={{ fontSize: 36, fontWeight: 800, color: T.white, lineHeight: 1.15, letterSpacing: -1, margin: '0 0 32px' }}>Cobertura total de mídia</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[
+                    { icon: <IconMonitor size={22} />, label: 'TVs', desc: 'Emissoras nacionais e regionais com transcrição automática', color: T.accent },
+                    { icon: <IconRadio size={22} />, label: 'Rádios', desc: 'Estações monitoradas com detecção de citações por nome', color: T.teal },
+                    { icon: <IconGlobe size={22} />, label: 'Portais de Notícias', desc: 'Portais regionais e nacionais com captura de screenshots', color: T.cyan },
+                    { icon: <IconSearch size={22} />, label: 'Redes Sociais', desc: 'Twitter/X, Instagram, TikTok, Facebook — engajamento e sentimento', color: T.pink },
+                ].map((item, i) => (
+                    <div key={i} style={{
+                        display: 'flex', gap: 14, alignItems: 'center',
+                        background: `${item.color}08`, border: `1px solid ${item.color}20`, borderRadius: 12,
+                        padding: '14px 18px', animation: `slide-up 0.6s cubic-bezier(0.16,1,0.3,1) ${0.4 + i * 0.15}s both`,
+                    }}>
+                        <div style={{ color: item.color, flexShrink: 0, width: 40, height: 40, borderRadius: 10, background: `${item.color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</div>
+                        <div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: T.white }}>{item.label}</div>
+                            <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.5 }}>{item.desc}</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {/* 24h badge */}
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center' }}>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 28px',
+                    background: `linear-gradient(135deg, ${T.primary}15, ${T.accent}15)`,
+                    border: `1px solid ${T.primary}30`, borderRadius: 12,
+                }}>
+                    <IconClock size={18} color={T.accent} />
+                    <span style={{ fontSize: 18, fontWeight: 800, color: T.white, fontFamily: T.mono }}>24/7</span>
+                    <span style={{ fontSize: 13, color: T.muted }}>Monitoramento ininterrupto</span>
                 </div>
-            ))}
+            </div>
         </div>
-    </SlideLayout>
+    </div>
 );
 
 /* ════════════════ SLIDE 3: Centro de Comando ════════════════ */
@@ -598,4 +629,258 @@ export const SlideClose = () => (
         <h1 style={{ fontSize: 48, fontWeight: 900, background: `linear-gradient(135deg, ${T.primary}, ${T.accent})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Elege.AI</h1>
         <p style={{ fontSize: 13, color: T.dim, marginTop: 8 }}>De gabinete a War Room. O arsenal que faltava para a política brasileira.</p>
     </div>
+);
+/* ════════════════ SLIDE: Flow Pipeline ════════════════ */
+export const SlideFlowPipeline: React.FC<{ isActive?: boolean }> = () => (
+    <div style={{ maxWidth: 900, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: 10, color: T.accent, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12 }}>COMO FUNCIONA</div>
+        <h2 style={{ fontSize: 42, fontWeight: 800, color: T.white, letterSpacing: -1, margin: '0 0 8px' }}>Da captura à inteligência</h2>
+        <p style={{ fontSize: 14, color: T.muted, margin: '0 0 48px', lineHeight: 1.6 }}>Todo conteúdo passa por 4 estágios automáticos antes de chegar ao seu dashboard.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+            {[
+                {
+                    icon: <IconSearch size={32} />, title: 'Monitoramento', color: T.primary,
+                    desc: 'Captação contínua de 200+ veículos em 7 plataformas simultâneas',
+                    items: ['TV e Rádio', 'Portais de Notícias', 'Redes Sociais', 'WhatsApp'],
+                },
+                {
+                    icon: <IconTarget size={32} />, title: 'Seleção Automática', color: T.cyan,
+                    desc: 'Filtros inteligentes selecionam conteúdos relevantes para cada ativação',
+                    items: ['Keywords', 'Entidades citadas', 'Nomes monitorados', 'Contexto político'],
+                },
+                {
+                    icon: <IconBrain size={32} />, title: 'Análise com IA', color: T.purple,
+                    desc: 'Inteligência artificial processa e extrai insights de cada menção',
+                    items: ['Sentimento por citado', 'Score de risco', 'Detecção de alvos', 'Contexto narrativo'],
+                },
+                {
+                    icon: <IconShield size={32} />, title: 'Classificação', color: T.accent,
+                    desc: 'Categorização automática por tipo de ameaça e nível de severidade',
+                    items: ['Risco político', 'Risco viral', 'Risco reputacional', 'Prioridade de resposta'],
+                },
+            ].map((step, i) => (
+                <div key={i} style={{
+                    position: 'relative',
+                    background: `${step.color}06`, border: `1px solid ${step.color}18`,
+                    borderRadius: 16, padding: '28px 20px 24px',
+                    animation: `slide-up 0.6s cubic-bezier(0.16,1,0.3,1) ${0.3 + i * 0.15}s both`,
+                }}>
+                    {/* Step number */}
+                    <div style={{
+                        position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
+                        width: 24, height: 24, borderRadius: '50%', background: step.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 800, color: T.bg, fontFamily: T.mono,
+                    }}>{i + 1}</div>
+                    {/* Arrow connector */}
+                    {i < 3 && (
+                        <div style={{
+                            position: 'absolute', right: -14, top: '50%', transform: 'translateY(-50%)',
+                            fontSize: 16, color: T.dim, zIndex: 5,
+                        }}>→</div>
+                    )}
+                    <div style={{ color: step.color, marginBottom: 12 }}>{step.icon}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: step.color, marginBottom: 8 }}>{step.title}</div>
+                    <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.6, marginBottom: 16 }}>{step.desc}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {step.items.map((item, j) => (
+                            <div key={j} style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                fontSize: 10, color: T.dim,
+                            }}>
+                                <IconCheck size={10} color={step.color} />
+                                <span>{item}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+/* ════════════════ SLIDE: WhatsApp Notifications (Phone Mockup) ════════════════ */
+export const SlideWhatsAppNotify: React.FC<{ isActive?: boolean }> = () => (
+    <div style={{ maxWidth: 1000, width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }}>
+        {/* LEFT: Copy */}
+        <div style={{ animation: 'slide-right 0.7s cubic-bezier(0.16,1,0.3,1) both' }}>
+            <div style={{ fontSize: 10, color: '#25D366', fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 16 }}>NOTIFICAÇÕES INSTANTÂNEAS</div>
+            <h2 style={{ fontSize: 40, fontWeight: 800, color: T.white, lineHeight: 1.15, letterSpacing: -1, margin: '0 0 16px' }}>
+                Notificações diretamente no <span style={{ color: '#25D366' }}>WhatsApp</span>
+            </h2>
+            <p style={{ fontSize: 16, color: T.muted, lineHeight: 1.7, margin: '0 0 32px' }}>
+                Conteúdos selecionados automaticamente pela IA são enviados para o WhatsApp da equipe em tempo real. Sem precisar abrir o sistema.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {[
+                    { icon: <IconZap size={16} />, label: 'Envio Instantâneo', desc: 'Alertas em segundos após a detecção' },
+                    { icon: <IconTarget size={16} />, label: 'Conteúdo Filtrado', desc: 'Só o que importa, sem ruído' },
+                    { icon: <IconBrain size={16} />, label: 'Análise Inclusa', desc: 'Sentimento, risco e contexto em cada mensagem' },
+                    { icon: <IconUsers size={16} />, label: 'Grupos da Equipe', desc: 'Cada ativação pode ter seu grupo dedicado' },
+                ].map((p, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', animation: `slide-up 0.6s cubic-bezier(0.16,1,0.3,1) ${0.3 + i * 0.15}s both` }}>
+                        <div style={{ color: '#25D366', flexShrink: 0, marginTop: 2 }}>{p.icon}</div>
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: T.white }}>{p.label}</div>
+                            <div style={{ fontSize: 11, color: T.dim, lineHeight: 1.5 }}>{p.desc}</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* RIGHT: Phone Mockup */}
+        <div style={{ display: 'flex', justifyContent: 'center', animation: 'slide-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>
+            <div style={{
+                width: 280, borderRadius: 32, padding: 10,
+                background: 'linear-gradient(145deg, #2a2a2e, #1a1a1e)',
+                boxShadow: '0 25px 60px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05)',
+                animation: 'mockup-float 5s ease-in-out infinite',
+            }}>
+                {/* Phone notch */}
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 2px' }}>
+                    <div style={{ width: 80, height: 20, borderRadius: 10, background: '#000' }} />
+                </div>
+                {/* Screen */}
+                <div style={{ borderRadius: 22, overflow: 'hidden', background: '#0b141a' }}>
+                    {/* WhatsApp header */}
+                    <div style={{ background: '#1f2c34', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ fontSize: 11, color: '#25D366' }}>←</div>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                            <span style={{ fontSize: 12 }}>ε</span>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e9edef' }}>ElegeAI</div>
+                            <div style={{ fontSize: 8, color: '#8696a0' }}>+55 61 99395-6958</div>
+                        </div>
+                    </div>
+                    {/* Chat messages */}
+                    <div style={{ padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 320 }}>
+                        {/* Message 1 - TV Alert */}
+                        <div style={{
+                            background: '#1f2c34', borderRadius: '0 8px 8px 8px', padding: '8px 10px',
+                            maxWidth: '90%', border: '1px solid rgba(255,255,255,0.04)',
+                        }}>
+                            <div style={{ fontSize: 9, color: '#25D366', fontWeight: 700, marginBottom: 4 }}>~Elege.AI</div>
+                            {/* Video thumb */}
+                            <div style={{ background: 'linear-gradient(135deg, #0d1117, #1a1a2e)', borderRadius: 6, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6, position: 'relative', overflow: 'hidden' }}>
+                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
+                                <div style={{ position: 'relative', width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <IconPlay size={14} color={T.white} />
+                                </div>
+                                <div style={{ position: 'absolute', bottom: 4, left: 6, fontSize: 7, color: 'rgba(255,255,255,0.7)', background: 'rgba(0,0,0,0.5)', borderRadius: 3, padding: '1px 4px' }}>TV Band • Brasília</div>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#e9edef', fontWeight: 700, marginBottom: 2 }}>TV Distrital - 02/03/26</div>
+                            <div style={{ fontSize: 9, color: '#8696a0', marginBottom: 4 }}>20:18:45</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                                <span style={{ fontSize: 9 }}>🟩</span>
+                                <span style={{ fontSize: 9, color: '#e9edef', fontWeight: 600 }}>Flavio Bolsonaro</span>
+                            </div>
+                            <div style={{ fontSize: 8, color: '#8696a0', lineHeight: 1.5, marginBottom: 6 }}>
+                                O texto cita o senador como líder de articulação da bancada, reforçando imagem positiva.
+                            </div>
+                            <div style={{ fontSize: 7, color: '#25D366', lineHeight: 1.4, marginBottom: 4 }}>
+                                #SenadoFederal #PolíticaDF #Articulação
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 7, color: '#8696a0' }}>14:14</div>
+                        </div>
+
+                        {/* Message 2 - Portal Alert */}
+                        <div style={{
+                            background: '#1f2c34', borderRadius: '0 8px 8px 8px', padding: '8px 10px',
+                            maxWidth: '90%', border: '1px solid rgba(255,255,255,0.04)',
+                        }}>
+                            <div style={{ fontSize: 9, color: '#25D366', fontWeight: 700, marginBottom: 4 }}>~Elege.AI</div>
+                            <div style={{ fontSize: 10, color: '#e9edef', fontWeight: 700, marginBottom: 2 }}>📢 Alerta Portal</div>
+                            <div style={{ fontSize: 8, color: '#8696a0', lineHeight: 1.5 }}>
+                                G1 publicou matéria com menção direta. Sentimento: <span style={{ color: '#f87171', fontWeight: 700 }}>NEGATIVO</span> • Risco: <span style={{ color: '#fb923c', fontWeight: 700 }}>68</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 7, color: '#8696a0', marginTop: 4 }}>14:22</div>
+                        </div>
+                    </div>
+                </div>
+                {/* Home bar */}
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0' }}>
+                    <div style={{ width: 100, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.2)' }} />
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+/* ════════════════ SLIDE: Relatórios Estratégicos ════════════════ */
+export const SlideReports: React.FC<{ isActive?: boolean }> = () => (
+    <SplitSlide title="Relatórios Estratégicos" subtitle="Dashboards executivos com KPIs de monitoramento, sentimento e risco — gerados automaticamente para tomada de decisão rápida."
+        accent={T.purple} icon={<IconBarChart size={32} />}
+        points={[
+            { icon: <IconBarChart size={16} />, label: 'KPIs em Tempo Real', desc: 'Métricas atualizadas automaticamente a cada ciclo de sync' },
+            { icon: <IconTrendingUp size={16} />, label: 'Evolução Temporal', desc: 'Gráficos de tendência de menções, sentimento e risco' },
+            { icon: <IconDownload size={16} />, label: 'Exportação PDF', desc: 'Relatórios formatados prontos para reuniões estratégicas' },
+        ]}
+    >
+        <SimFrame glow={T.purple}>
+            {/* Report header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.white }}>Relatório Executivo</div>
+                    <div style={{ fontSize: 10, color: T.dim }}>Ativação: Flavio Bolsonaro • Últimas 24h</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                    <Badge label="PDF" color={T.purple} />
+                    <Badge label="TEMPO REAL" color={T.success} filled />
+                </div>
+            </div>
+            {/* KPI Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                {[
+                    { label: 'Menções Totais', value: '916', delta: '+35%', color: T.primary },
+                    { label: 'Risk Score Médio', value: '30', delta: 'Baixo', color: T.success },
+                    { label: 'Sentimento Net', value: '+222', delta: '29% positivo', color: T.success },
+                ].map((k, i) => (
+                    <div key={i} style={{ background: T.bg, borderRadius: 8, border: `1px solid ${T.border}`, borderLeft: `3px solid ${k.color}`, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 8, color: T.dim, textTransform: 'uppercase', letterSpacing: 1 }}>{k.label}</div>
+                        <div style={{ fontFamily: T.mono, fontSize: 22, fontWeight: 800, color: T.white, marginTop: 2 }}>{k.value}</div>
+                        <div style={{ fontSize: 9, color: k.color, marginTop: 2 }}>{k.delta}</div>
+                    </div>
+                ))}
+            </div>
+            {/* Secondary metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 14 }}>
+                {[
+                    { label: 'Fontes Únicas', value: '47', icon: <IconGlobe size={12} />, color: T.cyan },
+                    { label: 'Alertas Críticos', value: '6', icon: <IconAlertTriangle size={12} />, color: T.danger },
+                    { label: 'Entidades', value: '16', icon: <IconUsers size={12} />, color: T.purple },
+                    { label: 'Ameaças Ativas', value: '3', icon: <IconShield size={12} />, color: T.accent },
+                ].map((m, i) => (
+                    <div key={i} style={{ background: `${m.color}08`, borderRadius: 6, border: `1px solid ${m.color}15`, padding: '8px 10px', textAlign: 'center' }}>
+                        <div style={{ color: m.color, marginBottom: 4 }}>{m.icon}</div>
+                        <div style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: T.white }}>{m.value}</div>
+                        <div style={{ fontSize: 7, color: T.dim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.label}</div>
+                    </div>
+                ))}
+            </div>
+            {/* Chart mockup */}
+            <div style={{ background: T.bg, borderRadius: 8, border: `1px solid ${T.border}`, padding: '10px 14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Tendência 7 dias</span>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        {[{ l: 'Menções', c: T.primary }, { l: 'Positivo', c: T.success }, { l: 'Negativo', c: T.danger }].map(x => (
+                            <span key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: T.dim }}>
+                                <span style={{ width: 6, height: 2, borderRadius: 1, background: x.c }} />{x.l}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+                {/* Mini chart bars */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 50 }}>
+                    {[45, 62, 38, 71, 55, 89, 78].map((v, i) => (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                            <div style={{ width: '100%', height: `${(v / 100) * 48}px`, borderRadius: 3, background: `linear-gradient(180deg, ${T.primary}, ${T.primary}60)` }} />
+                            <span style={{ fontSize: 7, color: T.dim, marginTop: 2 }}>{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][i]}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </SimFrame>
+    </SplitSlide>
 );

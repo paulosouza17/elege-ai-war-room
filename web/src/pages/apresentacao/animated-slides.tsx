@@ -123,10 +123,10 @@ const MiniLineChart: React.FC<{ data: number[][]; colors: string[]; labels: stri
 };
 
 /* ════════════════ DASHBOARD — Screen 1: KPIs / Screen 2: Charts ════════════════ */
-export const AnimDashboard = () => {
+export const AnimDashboard: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
     // screen 0 = KPIs, screen 1 = Charts. Alternates after full animation.
     const [screen, setScreen] = useState<0 | 1>(0);
-    const chartIdx = useRotatingIndex(3, 5000);
+    const chartIdx = useRotatingIndex(3, 5000, isActive);
     // Screen 0 stays 6s (time for all KPIs to animate: stagger 200ms*4 + 1.8s countup + margin)
     // Screen 1 stays 8s
     useEffect(() => {
@@ -214,8 +214,8 @@ export const AnimDashboard = () => {
 };
 
 /* ════════════════ TV / RADIO — Toggle every 10s, TV with system video + mention hint ════════════════ */
-export const AnimFeedTV = () => {
-    const mode = useRotatingIndex(2, 10000); // 0=TV, 1=Radio
+export const AnimFeedTV: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
+    const mode = useRotatingIndex(2, 10000, isActive); // 0=TV, 1=Radio
     const isTV = mode === 0;
     // Load real tracked TV media from Elege.AI system
     const [tvVideoSrc, setTvVideoSrc] = useState<string>('');
@@ -551,9 +551,9 @@ const TikTokCard: React.FC = () => (
 );
 
 /* AnimFeedSocial: 3 cards side-by-side, Instagram centered (highlighted), active card cycles every 3s */
-export const AnimFeedSocial = () => {
+export const AnimFeedSocial: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
     // Active highlight cycles: 0=Twitter, 1=Instagram, 2=TikTok
-    const activeCard = useRotatingIndex(3, 3000);
+    const activeCard = useRotatingIndex(3, 3000, isActive);
     const tabLabels = ['Twitter / X', 'Instagram', 'TikTok'];
     const tabColors = ['#e7e9ea', '#e879f9', '#22d3ee'];
     // Single tweet shown — cycles within the highlight
@@ -616,8 +616,8 @@ export const AnimFeedSocial = () => {
 };
 
 /* ════════════════ CRISIS — 3 Steps — expanded vertical layout ════════════════ */
-export const AnimCrisis = () => {
-    const stepIdx = useRotatingIndex(3, 7000);
+export const AnimCrisis: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
+    const stepIdx = useRotatingIndex(3, 7000, isActive);
     const mentionCount = useCountUp(21, 1500, 400);
     return (
         <SplitWrap title="Gestão de Crises com IA" subtitle="De menção avulsa a dossiê estratégico — a IA detecta, analisa e monta o plano de resposta automaticamente."
@@ -705,8 +705,8 @@ export const AnimCrisis = () => {
 };
 
 /* ════════════════ RADAR DE AMEAÇAS — Rotating between feed view and threat profile ════════════════ */
-export const AnimThreat = () => {
-    const view = useRotatingIndex(2, 6000); // 0=feed view, 1=user profile
+export const AnimThreat: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
+    const view = useRotatingIndex(2, 6000, isActive); // 0=feed view, 1=user profile
     return (
         <SplitWrap title="Radar de Ameaças" subtitle="Identifica usuários com padrões de comportamento hostil, coordenação de ataques e amplificação artificial." accent={T.danger} icon={<IconAlertTriangle size={32} />}
             points={[

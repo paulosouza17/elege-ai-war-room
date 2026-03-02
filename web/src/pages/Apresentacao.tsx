@@ -3,13 +3,14 @@ import { T, GLOBAL_STYLES, IconChevronLeft, IconChevronRight } from './apresenta
 import {
     SlideCover, SlideEvolution, SimThreats,
     SlideWhatsApp, SlideScenarios, SlideClose, ImpactSlide,
+    SlideFlowPipeline, SlideWhatsAppNotify, SlideReports,
 } from './apresentacao/slides';
 import {
     AnimDashboard, AnimFeedTV, AnimMentionDetail, AnimFeedSocial, AnimCrisis,
 } from './apresentacao/animated-slides';
 
 /* ═══════════════════════════════════════════════════════
-   Elege.AI — Apresentação Estratégica v3
+   Elege.AI — Apresentação Estratégica v4
    Narrativa: Problema → Visão → Captura → Inteligência
               → Frente Oculta → Ameaças → Resposta → Ação
    ═══════════════════════════════════════════════════════ */
@@ -29,19 +30,12 @@ const css = {
 };
 
 /* ══════════════════════════════════════════════════════════
-   ORDEM ESTRATÉGICA DA APRESENTAÇÃO
-   Fluxo narrativo: apresentar problema → visão geral →
-   mostrar captura → revelar inteligência → frente oculta →
-   identificar ameaças → resposta → cenários → fechamento
-
-   MOCKUP vs PRINT:
-   - [MOCKUP] = Simulação CSS (pode ser substituído por print)
-   - [PRINT]  = Local reservado para screenshot real do sistema
+   SLIDE DEFINITIONS — each component receives { isActive }
    ══════════════════════════════════════════════════════════ */
 
-const SLIDES: Array<{ component: React.FC; type: 'cover' | 'impact' | 'feature' | 'close'; mockup?: string }> = [
+const SLIDES: Array<{ component: React.FC<{ isActive: boolean }>; type: 'cover' | 'impact' | 'feature' | 'close' }> = [
     /* ── ATO 1: ABERTURA ── */
-    // 1. Capa — primeira impressão
+    // 1. Capa
     { component: SlideCover, type: 'cover' },
 
     // 2. Impacto — criar urgência
@@ -54,11 +48,14 @@ const SLIDES: Array<{ component: React.FC; type: 'cover' | 'impact' | 'feature' 
         />, type: 'impact'
     },
 
-    // 3. Evolução — credibilidade
+    // 3. Evolução — timeline + monitoramento
     { component: SlideEvolution, type: 'feature' },
 
+    // 4. Pipeline — Monitora → Seleciona → Analisa → Classifica
+    { component: SlideFlowPipeline, type: 'feature' },
+
     /* ── ATO 2: VISÃO TOTAL ── */
-    // 4. Impacto — transição para o produto
+    // 5. Impacto
     {
         component: () => <ImpactSlide
             line1="200+ veículos. 7 plataformas."
@@ -67,11 +64,11 @@ const SLIDES: Array<{ component: React.FC; type: 'cover' | 'impact' | 'feature' 
         />, type: 'impact'
     },
 
-    // 5. Centro de Comando [MOCKUP — substituir por print da tela Centro de Comando]
-    { component: AnimDashboard, type: 'feature', mockup: 'Centro de Comando — Dashboard com KPIs, alertas e word cloud' },
+    // 6. Centro de Comando
+    { component: AnimDashboard, type: 'feature' },
 
     /* ── ATO 3: CAPTURA ── */
-    // 6. Impacto — transição para as fontes
+    // 7. Impacto
     {
         component: () => <ImpactSlide
             line1="A informação bruta é o petróleo."
@@ -81,18 +78,22 @@ const SLIDES: Array<{ component: React.FC; type: 'cover' | 'impact' | 'feature' 
         />, type: 'impact'
     },
 
-    // 7. Feed Social [MOCKUP — substituir por print do Feed de Inteligência aba Redes Sociais]
-    { component: AnimFeedSocial, type: 'feature', mockup: 'Feed de Inteligência — aba Redes Sociais com modal de tweet' },
+    // 8. Feed Social
+    { component: AnimFeedSocial, type: 'feature' },
 
-    // 8. Feed TV/Rádio [MOCKUP — substituir por print do Feed de Inteligência aba TV com player]
-    { component: AnimFeedTV, type: 'feature', mockup: 'Feed de Inteligência — aba TV com player de vídeo e timeline de citações' },
+    // 9. Feed TV/Rádio
+    { component: AnimFeedTV, type: 'feature' },
 
     /* ── ATO 4: INTELIGÊNCIA ── */
-    // 9. Análise de Menção [MOCKUP — substituir por print do painel Detalhes da Menção]
-    { component: AnimMentionDetail, type: 'feature', mockup: 'Detalhes da Menção — Alvos Detectados, Análise por Citado, Análise de Risco' },
+    // 10. Análise de Menção
+    { component: AnimMentionDetail, type: 'feature' },
 
-    /* ── ATO 5: FRENTE OCULTA ── */
-    // 10. Impacto — WhatsApp como diferencial
+    /* ── ATO 5: NOTIFICAÇÕES ── */
+    // 11. WhatsApp Notifications
+    { component: SlideWhatsAppNotify, type: 'feature' },
+
+    /* ── ATO 6: FRENTE OCULTA ── */
+    // 12. Impacto
     {
         component: () => <ImpactSlide
             line1="Existe uma frente de batalha"
@@ -101,15 +102,15 @@ const SLIDES: Array<{ component: React.FC; type: 'cover' | 'impact' | 'feature' 
         />, type: 'impact'
     },
 
-    // 11. WhatsApp Intelligence [MOCKUP — funcionalidade em desenvolvimento]
-    { component: SlideWhatsApp, type: 'feature', mockup: 'Monitoramento WhatsApp — grupos, alertas de mobilização (em desenvolvimento)' },
+    // 13. WhatsApp Intelligence
+    { component: SlideWhatsApp, type: 'feature' },
 
-    /* ── ATO 6: AMEAÇAS ── */
-    // 12. Radar de Ameaças [MOCKUP — substituir por print da tela Radar de Ameaças]
-    { component: SimThreats, type: 'feature', mockup: 'Radar de Ameaças — perfis ranqueados e entidades mais atacadas' },
+    /* ── ATO 7: AMEAÇAS ── */
+    // 14. Radar de Ameaças
+    { component: SimThreats, type: 'feature' },
 
-    /* ── ATO 7: RESPOSTA ── */
-    // 13. Impacto — transição para resposta
+    /* ── ATO 8: RESPOSTA ── */
+    // 15. Impacto
     {
         component: () => <ImpactSlide
             line1="Detectar é metade do caminho."
@@ -118,14 +119,18 @@ const SLIDES: Array<{ component: React.FC; type: 'cover' | 'impact' | 'feature' 
         />, type: 'impact'
     },
 
-    // 14. Gestão de Crises [MOCKUP — substituir por print da Gestão de Crises com Plano de Resposta IA]
-    { component: AnimCrisis, type: 'feature', mockup: 'Gestão de Crises — 3 passos: Origem, Insight IA, Plano de Resposta + Dossiê' },
+    // 16. Gestão de Crises
+    { component: AnimCrisis, type: 'feature' },
 
-    /* ── ATO 8: FECHAMENTO ── */
-    // 15. Cenários Estratégicos
+    /* ── ATO 9: RELATÓRIOS ── */
+    // 17. Relatórios Estratégicos
+    { component: SlideReports, type: 'feature' },
+
+    /* ── ATO 10: FECHAMENTO ── */
+    // 18. Cenários
     { component: SlideScenarios, type: 'feature' },
 
-    // 16. Fechamento
+    // 19. Fechamento
     { component: SlideClose, type: 'close' },
 ];
 
@@ -158,7 +163,7 @@ export const Apresentacao: React.FC = () => {
                     ...css.slide,
                     ...(i === current ? css.visible : i < current ? css.exited : css.hidden),
                 }}>
-                    <Slide />
+                    <Slide isActive={i === current} />
                 </div>
             ))}
 

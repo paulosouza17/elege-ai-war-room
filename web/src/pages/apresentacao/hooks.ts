@@ -52,12 +52,13 @@ export const useFormattedCountUp = (display: string, duration = 1800, startDelay
 /* ═══════════════════════════════════════════
    useRotatingIndex — Cicla entre 0..count-1
    ═══════════════════════════════════════════ */
-export const useRotatingIndex = (count: number, intervalMs = 5000): number => {
+export const useRotatingIndex = (count: number, intervalMs = 5000, active = true): number => {
     const [index, setIndex] = useState(0);
     useEffect(() => {
+        if (!active) { setIndex(0); return; }
         const timer = setInterval(() => setIndex(i => (i + 1) % count), intervalMs);
         return () => clearInterval(timer);
-    }, [count, intervalMs]);
+    }, [count, intervalMs, active]);
     return index;
 };
 
