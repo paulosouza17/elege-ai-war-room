@@ -592,10 +592,10 @@ export const SlideClose = () => (
                 { name: 'Fábio Rosa', role: 'CEO', phone: '+55 61 99965-8985' },
                 { name: 'Paulo Sart', role: 'CPO', phone: '+55 61 98378-3766' },
             ].map(c => (
-                <div key={c.name} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: '18px 28px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: T.white }}>{c.name}</div>
-                    <div style={{ fontSize: 11, color: T.accent, fontWeight: 600, marginTop: 2 }}>{c.role}</div>
-                    <div style={{ fontSize: 12, color: T.muted, marginTop: 8, fontFamily: T.mono }}>{c.phone}</div>
+                <div key={c.name} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 14, padding: '24px 36px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 23, fontWeight: 700, color: T.white }}>{c.name}</div>
+                    <div style={{ fontSize: 16, color: T.accent, fontWeight: 600, marginTop: 4 }}>{c.role}</div>
+                    <div style={{ fontSize: 17, color: T.muted, marginTop: 10, fontFamily: T.mono }}>{c.phone}</div>
                 </div>
             ))}
         </div>
