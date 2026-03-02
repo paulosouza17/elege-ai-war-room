@@ -130,14 +130,13 @@ const MiniLineChart: React.FC<{ data: number[][]; colors: string[]; labels: stri
     );
 };
 
-/* ════════════════ DASHBOARD — Screen 1: Charts / Screen 2: KPIs ════════════════ */
+/* ════════════════ DASHBOARD — Screen 1: KPIs / Screen 2: Line Chart ════════════════ */
 export const AnimDashboard: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
-    // screen 0 = Charts (shown first), screen 1 = KPIs
+    // screen 0 = KPIs (shown first), screen 1 = Line Chart
     const [screen, setScreen] = useState<0 | 1>(0);
-    const chartIdx = useRotatingIndex(3, 5000, isActive);
-    // Screen 0 (Charts) stays 8s, Screen 1 (KPIs) stays 6s
+    // Screen 0 (KPIs) stays 6s, Screen 1 (Line Chart) stays 8s
     useEffect(() => {
-        const duration = screen === 0 ? 8000 : 6000;
+        const duration = screen === 0 ? 6000 : 8000;
         const t = setTimeout(() => setScreen(s => s === 0 ? 1 : 0), duration);
         return () => clearTimeout(t);
     }, [screen]);
@@ -166,44 +165,15 @@ export const AnimDashboard: React.FC<{ isActive?: boolean }> = ({ isActive = tru
                         {[0, 1].map(i => <div key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: i === screen ? T.primary : T.border, transition: 'background 0.4s' }} />)}
                     </div>
                 </div>
-                {/* Two screens stacked */}
+                {/* Two screens: KPIs then Line Chart */}
                 <div style={{ position: 'relative', minHeight: 200 }}>
-                    {/* SCREEN 0: Charts (shown first) */}
+                    {/* SCREEN 0: KPIs */}
                     <div style={{
                         position: 'absolute', inset: 0,
                         opacity: screen === 0 ? 1 : 0,
                         transform: screen === 0 ? 'translateY(0)' : 'translateY(-20px)',
                         transition: 'all 0.7s cubic-bezier(0.4,0,0.2,1)',
                         pointerEvents: screen === 0 ? 'auto' : 'none',
-                    }}>
-                        <div style={{ position: 'relative', minHeight: 140 }}>
-                            <div style={{ position: 'absolute', inset: 0, opacity: chartIdx === 0 ? 1 : 0, transition: 'opacity 0.8s' }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Sentimento por Tipo</div>
-                                <MiniChart data={[267, 597, 45]} colors={[T.success, T.primary, T.danger]} labels={['Positivo', 'Neutro', 'Negativo']} animated={chartIdx === 0 && screen === 0} />
-                            </div>
-                            <div style={{ position: 'absolute', inset: 0, opacity: chartIdx === 1 ? 1 : 0, transition: 'opacity 0.8s' }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Volume por Fonte</div>
-                                <MiniChart data={[420, 312, 97, 54, 33]} colors={[T.pink, T.cyan, T.accent, T.teal, T.success]} labels={['Twitter', 'Portais', 'TV', 'Rádio', 'WA']} animated={chartIdx === 1 && screen === 0} />
-                            </div>
-                            <div style={{ position: 'absolute', inset: 0, opacity: chartIdx === 2 ? 1 : 0, transition: 'opacity 0.8s' }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Menções — 7 Dias</div>
-                                <MiniLineChart
-                                    data={[[42, 58, 73, 45, 91, 112, 134], [18, 25, 31, 20, 42, 38, 45], [5, 8, 12, 7, 15, 22, 18]]}
-                                    colors={[T.success, T.primary, T.danger]}
-                                    labels={['Positivo', 'Neutro', 'Negativo']}
-                                    xLabels={['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']}
-                                    animated={chartIdx === 2 && screen === 0}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    {/* SCREEN 1: KPIs */}
-                    <div style={{
-                        position: 'absolute', inset: 0,
-                        opacity: screen === 1 ? 1 : 0,
-                        transform: screen === 1 ? 'translateY(0)' : 'translateY(20px)',
-                        transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s',
-                        pointerEvents: screen === 1 ? 'auto' : 'none',
                     }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
                             <AKpi label="Total Menções" value={916} accent={T.primary} icon={<IconBarChart size={16} />} extra="+35% (24h)" delay={0} />
@@ -214,7 +184,7 @@ export const AnimDashboard: React.FC<{ isActive?: boolean }> = ({ isActive = tru
                             <AKpi label="Ativações" value={1} accent="#f59e0b" icon={<IconZap size={16} />} extra="Monitoramentos" delay={3} />
                         </div>
                     </div>
-                    {/* SCREEN 2: Charts */}
+                    {/* SCREEN 1: Line Chart */}
                     <div style={{
                         position: 'absolute', inset: 0,
                         opacity: screen === 1 ? 1 : 0,
@@ -222,26 +192,14 @@ export const AnimDashboard: React.FC<{ isActive?: boolean }> = ({ isActive = tru
                         transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s',
                         pointerEvents: screen === 1 ? 'auto' : 'none',
                     }}>
-                        <div style={{ position: 'relative', minHeight: 140 }}>
-                            <div style={{ position: 'absolute', inset: 0, opacity: chartIdx === 0 ? 1 : 0, transition: 'opacity 0.8s' }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Sentimento por Tipo</div>
-                                <MiniChart data={[267, 597, 45]} colors={[T.success, T.primary, T.danger]} labels={['Positivo', 'Neutro', 'Negativo']} />
-                            </div>
-                            <div style={{ position: 'absolute', inset: 0, opacity: chartIdx === 1 ? 1 : 0, transition: 'opacity 0.8s' }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Volume por Fonte</div>
-                                <MiniChart data={[420, 312, 97, 54, 33]} colors={[T.pink, T.cyan, T.accent, T.teal, T.success]} labels={['Twitter', 'Portais', 'TV', 'Rádio', 'WA']} />
-                            </div>
-                            <div style={{ position: 'absolute', inset: 0, opacity: chartIdx === 2 ? 1 : 0, transition: 'opacity 0.8s' }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Menções — 7 Dias</div>
-                                <MiniLineChart
-                                    data={[[42, 58, 73, 45, 91, 112, 134], [18, 25, 31, 20, 42, 38, 45], [5, 8, 12, 7, 15, 22, 18]]}
-                                    colors={[T.success, T.primary, T.danger]}
-                                    labels={['Positivo', 'Neutro', 'Negativo']}
-                                    xLabels={['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']}
-                                    animated={chartIdx === 2 && screen === 1}
-                                />
-                            </div>
-                        </div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Menções — 7 Dias</div>
+                        <MiniLineChart
+                            data={[[42, 58, 73, 45, 91, 112, 134], [18, 25, 31, 20, 42, 38, 45], [5, 8, 12, 7, 15, 22, 18]]}
+                            colors={[T.success, T.primary, T.danger]}
+                            labels={['Positivo', 'Neutro', 'Negativo']}
+                            xLabels={['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']}
+                            animated={screen === 1}
+                        />
                     </div>
                 </div>
             </SimFrame>
