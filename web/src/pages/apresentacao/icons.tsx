@@ -228,9 +228,11 @@ export const GLOBAL_STYLES = `
 .anim-crossfade-in { animation: crossfade-in 0.6s ease-out both; }
 .anim-crossfade-out { animation: crossfade-out 0.4s ease-in both; }
 
-/* Scale up all text across slides for better readability */
+/* Ensure presentation fits within viewport — designed for 1440x670 minimum */
 .slide-content-scaler {
-  zoom: 1.25;
+  max-width: 1100px;
+  max-height: calc(100vh - 80px);
+  width: 100%;
 }
 `;
 

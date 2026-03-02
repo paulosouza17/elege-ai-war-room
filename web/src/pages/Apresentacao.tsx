@@ -41,10 +41,10 @@ const SLIDES: Array<{ component: React.FC<{ isActive: boolean }>; type: 'cover' 
     // 2. Impacto — criar urgência
     {
         component: () => <ImpactSlide
-            line1="Enquanto você lê esta frase,"
-            line2="847 menções ao seu candidato foram publicadas."
+            line1="A cada minuto, uma narrativa se forma."
+            line2="Quem não monitora, já perdeu o controle."
             accent={T.danger}
-            note="Twitter, portais, TV, rádio, WhatsApp, Instagram e TikTok. Simultaneamente."
+            note="A guerra eleitoral é digital. TV, rádio, redes sociais, portais e WhatsApp — tudo acontece ao mesmo tempo."
         />, type: 'impact'
     },
 
