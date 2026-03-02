@@ -375,12 +375,16 @@ export const Dashboard: React.FC = () => {
                     .order('created_at', { ascending: false }).range(0, FEED_PAGE_SIZE - 1)
             );
 
-            // 10. Crisis detection
+            // 10. Crisis detection — only when a specific activation is selected
+            //     In "Visão Geral" (all activations), crisis indicators are disabled
+            //     to prevent mixing KPIs and generating false positives.
             const crisisReasons: string[] = [];
-            if (avgRisk >= 70) crisisReasons.push(`Risk Score médio alto (${avgRisk})`);
-            if (growthPct > 50 && current > 5) crisisReasons.push(`Pico de menções (+${growthPct}%)`);
-            if (sentNeg > sentPos * 2 && sentNeg > 3) crisisReasons.push('Sentimento predominantemente negativo');
-            if ((recentAlerts || []).length >= 5) crisisReasons.push(`${(recentAlerts || []).length} alertas ativos`);
+            if (activationId) {
+                if (avgRisk >= 70) crisisReasons.push(`Risk Score médio alto (${avgRisk})`);
+                if (growthPct > 50 && current > 5) crisisReasons.push(`Pico de menções (+${growthPct}%)`);
+                if (sentNeg > sentPos * 2 && sentNeg > 3) crisisReasons.push('Sentimento predominantemente negativo');
+                if ((recentAlerts || []).length >= 5) crisisReasons.push(`${(recentAlerts || []).length} alertas ativos`);
+            }
 
             const alertsTotalVal = alertsCount ?? 0;
             setAlertsTotal(alertsTotalVal);

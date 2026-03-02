@@ -374,6 +374,84 @@ const extractEntityBubbles = (mention: Mention, nameToElegeId?: Record<string, s
 };
 
 
+/**
+ * InstagramFramePlayer — auto-cycling slideshow for video frames extracted by Elege API.
+ * Since Elege returns video content as individual frames (kind:'image', name:'frame_*'),
+ * this component simulates video playback by cycling through frames.
+ */
+const InstagramFramePlayer: React.FC<{ frames: any[]; postId: string | number }> = ({ frames, postId }) => {
+    const [currentFrame, setCurrentFrame] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const totalFrames = frames.length;
+
+    useEffect(() => {
+        if (isPlaying && totalFrames > 1) {
+            intervalRef.current = setInterval(() => {
+                setCurrentFrame(prev => (prev + 1) % totalFrames);
+            }, 2000); // 2 seconds per frame
+        }
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [isPlaying, totalFrames]);
+
+    // Reset when frames change (new mention selected)
+    useEffect(() => {
+        setCurrentFrame(0);
+        setIsPlaying(true);
+    }, [postId]);
+
+    const frame = frames[currentFrame];
+    if (!frame) return null;
+
+    return (
+        <div
+            className="relative w-full aspect-[9/16] max-h-[400px] bg-black flex items-center justify-center cursor-pointer group/player"
+            onClick={() => setIsPlaying(p => !p)}
+        >
+            <img
+                src={`/api/elege/assets/${postId}/${frame.id}`}
+                className="w-full h-full object-contain transition-opacity duration-300"
+                alt={`Frame ${currentFrame + 1}`}
+            />
+
+            {/* Progress bar */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
+                <div
+                    className="h-full bg-fuchsia-500 transition-all duration-300"
+                    style={{ width: `${((currentFrame + 1) / totalFrames) * 100}%` }}
+                />
+            </div>
+
+            {/* Frame counter + play/pause indicator */}
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white border border-white/10">
+                    {currentFrame + 1}/{totalFrames}
+                </span>
+            </div>
+
+            {/* Paused overlay */}
+            {!isPlaying && (
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+                    <div className="w-12 h-12 rounded-full bg-white/20 border border-white/30 backdrop-blur-sm flex items-center justify-center">
+                        <Play className="w-5 h-5 ml-0.5 text-white" />
+                    </div>
+                </div>
+            )}
+
+            {/* Reel indicator */}
+            <div className="absolute top-3 left-3 z-10">
+                <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-fuchsia-300 border border-fuchsia-500/30 flex items-center gap-1">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                    Reel
+                </span>
+            </div>
+        </div>
+    );
+};
+
+
 export const IntelligenceFeed: React.FC = () => {
     const PAGE_SIZE = 30;
     const TV_PAGE_SIZE = 10;
@@ -1874,7 +1952,13 @@ export const IntelligenceFeed: React.FC = () => {
                 const username = meta.author_username || meta.source_name || selectedMention.source || 'instagram_user';
                 const hashtags = safeKeywords(selectedMention.classification_metadata?.keywords || []).filter((k: string) => k.startsWith('#') || !k.includes(' ')).slice(0, 6);
                 const hasMedia = (imageAssets.length > 0 || videoAssets.length > 0) && postId;
-                const isReel = videoAssets.length > 0;
+
+                // Detect frame-based video content (Elege API returns video frames as kind:'image' with name 'frame_*')
+                const frameAssets = imageAssets.filter((a: any) => a.name && a.name.startsWith('frame_')).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+                const nonFrameImages = imageAssets.filter((a: any) => !a.name || !a.name.startsWith('frame_'));
+                const hasRealVideo = videoAssets.length > 0;
+                const hasVideoFrames = frameAssets.length >= 2; // 2+ frames = video content
+                const isReel = hasRealVideo || hasVideoFrames;
 
                 return (
                     <div className="absolute inset-0 right-[450px] z-20 flex items-center justify-center p-8 pointer-events-none">
@@ -1896,12 +1980,19 @@ export const IntelligenceFeed: React.FC = () => {
                                 <svg className={`w-5 h-5 ${isReel ? '' : 'ml-auto'} text-fuchsia-400`} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
                             </div>
 
-                            {/* Main Media — Video Player for Reels, Image for Feed Posts */}
-                            {isReel && postId ? (
+                            {/* Main Media — Real video, frame slideshow, or static image */}
+                            {hasRealVideo && postId ? (
                                 <div className="relative w-full aspect-[9/16] max-h-[400px] bg-black flex items-center justify-center">
                                     <video controls preload="metadata" className="w-full h-full object-contain">
                                         <source src={`/api/elege/assets/${postId}/${videoAssets[0].id}`} type="video/mp4" />
                                     </video>
+                                </div>
+                            ) : hasVideoFrames && postId ? (
+                                /* Frame-based video: auto-cycling slideshow of extracted frames */
+                                <InstagramFramePlayer frames={frameAssets} postId={postId} />
+                            ) : nonFrameImages.length > 0 && postId ? (
+                                <div className="relative w-full aspect-square bg-black flex items-center justify-center">
+                                    <img src={`/api/elege/assets/${postId}/${nonFrameImages[0].id}`} className="w-full h-full object-cover" alt="" />
                                 </div>
                             ) : imageAssets.length > 0 && postId ? (
                                 <div className="relative w-full aspect-square bg-black flex items-center justify-center">

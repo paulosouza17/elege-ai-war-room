@@ -18,7 +18,7 @@ if (!fs.existsSync(SCREENSHOT_DIR)) {
  */
 function urlToFilename(url: string): string {
     const hash = crypto.createHash('sha256').update(url).digest('hex').substring(0, 16);
-    return `screenshot-${hash}.png`;
+    return `screenshot-${hash}.jpg`;
 }
 
 /**
@@ -59,7 +59,8 @@ export async function captureScreenshot(articleUrl: string): Promise<string | nu
         }
 
         const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('image')) {
+        // Elege API may report image/png but actually return JPEG — accept any image type
+        if (!contentType.includes('image') && !contentType.includes('octet-stream')) {
             console.warn(`[screenshotService] ⚠️ Non-image response (${contentType}) for ${articleUrl.substring(0, 60)}`);
             return null;
         }
