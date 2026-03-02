@@ -586,22 +586,7 @@ export const SlideScenarios = () => (
 /* ════════════════ SLIDE 11: Close ════════════════ */
 export const SlideClose = () => (
     <div style={{ textAlign: 'center', maxWidth: 700 }}>
-        <div style={{ fontSize: 31, fontWeight: 300, color: T.muted, lineHeight: 1.7, marginBottom: 40, fontStyle: 'italic' }}>
-            "A informação que chega com 30 minutos de atraso<br />é apenas história. A que chega agora é <strong style={{ color: T.white, fontWeight: 700 }}>poder</strong>."
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 48, flexWrap: 'wrap' }}>
-            {[
-                { icon: <IconEye size={16} />, t: 'Vê tudo' },
-                { icon: <IconBrain size={16} />, t: 'Entende tudo' },
-                { icon: <IconZap size={16} />, t: 'Automatiza tudo' },
-                { icon: <IconShield size={16} />, t: 'Antecipa tudo' },
-            ].map(c => (
-                <div key={c.t} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ color: T.success }}><IconCheck size={16} /></div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: T.white, display: 'flex', alignItems: 'center', gap: 6 }}>{c.icon} {c.t}</span>
-                </div>
-            ))}
-        </div>
+        <img src="/logo-elegeai-branca.png" alt="Elege.AI" style={{ height: 160, objectFit: 'contain', margin: '0 auto 48px', display: 'block' }} />
         <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginBottom: 40 }}>
             {[
                 { name: 'Fábio Rosa', role: 'CEO', phone: '+55 61 99965-8985' },
@@ -614,8 +599,6 @@ export const SlideClose = () => (
                 </div>
             ))}
         </div>
-        <img src="/logo-elegeai-branca.png" alt="Elege.AI" style={{ height: 120, objectFit: 'contain', margin: '0 auto', display: 'block' }} />
-        <p style={{ fontSize: 17, color: T.dim, marginTop: 16 }}>De gabinete a War Room. O arsenal que faltava para a política brasileira.</p>
     </div>
 );
 /* ════════════════ SLIDE: Flow Pipeline ════════════════ */
