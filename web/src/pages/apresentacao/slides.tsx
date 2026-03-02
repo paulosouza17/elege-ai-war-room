@@ -566,14 +566,14 @@ export const SlideScenarios = () => (
                     steps: ['Automação cruza Google Trends com menções positivas', 'Sistema identifica pauta favorável ganhando tração', 'Relatório automático com trechos e métricas', 'Material pronto para equipe de marketing', 'Amplificação coordenada nas 7 plataformas monitoradas']
                 },
             ].map((s, i) => (
-                <div key={i} style={{ background: `${s.color}06`, border: `1px solid ${s.color}18`, borderRadius: 14, padding: 22 }}>
+                <div style={{ background: `${s.color}06`, border: `1px solid ${s.color}18`, borderRadius: 14, padding: 22 }}>
                     <div style={{ color: s.color, marginBottom: 12 }}>{s.icon}</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: s.color, marginBottom: 14 }}>{s.title}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: s.color, marginBottom: 14 }}>{s.title}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {s.steps.map((step, j) => (
                             <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                                <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 700, color: s.color, width: 16, flexShrink: 0 }}>{j + 1}.</span>
-                                <span style={{ fontSize: 11, color: T.muted, lineHeight: 1.5 }}>{step}</span>
+                                <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: s.color, width: 18, flexShrink: 0 }}>{j + 1}.</span>
+                                <span style={{ fontSize: 14, color: T.muted, lineHeight: 1.5 }}>{step}</span>
                             </div>
                         ))}
                     </div>
@@ -586,7 +586,7 @@ export const SlideScenarios = () => (
 /* ════════════════ SLIDE 11: Close ════════════════ */
 export const SlideClose = () => (
     <div style={{ textAlign: 'center', maxWidth: 700 }}>
-        <div style={{ fontSize: 24, fontWeight: 300, color: T.muted, lineHeight: 1.7, marginBottom: 40, fontStyle: 'italic' }}>
+        <div style={{ fontSize: 31, fontWeight: 300, color: T.muted, lineHeight: 1.7, marginBottom: 40, fontStyle: 'italic' }}>
             "A informação que chega com 30 minutos de atraso<br />é apenas história. A que chega agora é <strong style={{ color: T.white, fontWeight: 700 }}>poder</strong>."
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 48, flexWrap: 'wrap' }}>
@@ -614,8 +614,8 @@ export const SlideClose = () => (
                 </div>
             ))}
         </div>
-        <h1 style={{ fontSize: 48, fontWeight: 900, background: `linear-gradient(135deg, ${T.primary}, ${T.accent})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Elege.AI</h1>
-        <p style={{ fontSize: 13, color: T.dim, marginTop: 8 }}>De gabinete a War Room. O arsenal que faltava para a política brasileira.</p>
+        <img src="/logo-elegeai-branca.png" alt="Elege.AI" style={{ height: 120, objectFit: 'contain', margin: '0 auto', display: 'block' }} />
+        <p style={{ fontSize: 17, color: T.dim, marginTop: 16 }}>De gabinete a War Room. O arsenal que faltava para a política brasileira.</p>
     </div>
 );
 /* ════════════════ SLIDE: Flow Pipeline ════════════════ */
