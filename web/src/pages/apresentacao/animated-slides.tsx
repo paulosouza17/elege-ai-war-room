@@ -217,35 +217,6 @@ export const AnimDashboard: React.FC<{ isActive?: boolean }> = ({ isActive = tru
 export const AnimFeedTV: React.FC<{ isActive?: boolean }> = ({ isActive = true }) => {
     const mode = useRotatingIndex(2, 10000, isActive); // 0=TV, 1=Radio
     const isTV = mode === 0;
-    // Load real tracked TV media from Elege.AI system
-    const [tvVideoSrc, setTvVideoSrc] = useState<string>('');
-    useEffect(() => {
-        fetch('/api/elege/feed?limit=20&source_type=tv')
-            .then(r => r.json())
-            .then(data => {
-                const items = Array.isArray(data) ? data : (data?.items || data?.data || []);
-                // Find a TV item with video assets referencing Flávio/Bolsonaro
-                for (const item of items) {
-                    const assets = typeof item.assets === 'string' ? JSON.parse(item.assets) : item.assets;
-                    if (assets && Array.isArray(assets)) {
-                        const videoAsset = assets.find((a: any) => a.type === 'video' || a.content_type?.startsWith('video'));
-                        if (videoAsset) {
-                            setTvVideoSrc(`/api/elege/assets/${item.id}/${videoAsset.id}`);
-                            return;
-                        }
-                    }
-                }
-                // Fallback: use any TV item video
-                for (const item of items) {
-                    const assets = typeof item.assets === 'string' ? JSON.parse(item.assets) : item.assets;
-                    if (assets && Array.isArray(assets) && assets.length > 0) {
-                        setTvVideoSrc(`/api/elege/assets/${item.id}/${assets[0].id}`);
-                        return;
-                    }
-                }
-            })
-            .catch(() => { /* no-op, video area will show poster */ });
-    }, []);
     return (
         <SplitWrap title={isTV ? "Monitoramento de TV" : "Monitoramento de Rádio"} subtitle={isTV ? "Player com timeline de citações, recorte de trechos e transcrição automática." : "Captura de áudio com waveform, detecção de citações e exportação de trechos."}
             accent={isTV ? T.accent : T.teal} icon={isTV ? <IconMonitor size={32} /> : <IconRadio size={32} />}
@@ -255,21 +226,12 @@ export const AnimFeedTV: React.FC<{ isActive?: boolean }> = ({ isActive = true }
                 { icon: <IconSearch size={16} />, label: 'Transcrição Automática', desc: 'Busca por texto dentro de programas' },
             ]}>
             <SimFrame glow={isTV ? T.accent : T.teal}>
-                {/* Media area — taller for proper video proportion */}
-                <div style={{ position: 'relative', borderRadius: 10, height: 240, overflow: 'hidden', marginBottom: 10 }}>
-                    {/* TV Mode — system video */}
+                {/* Media area — 16:9 aspect ratio */}
+                <div style={{ position: 'relative', borderRadius: 10, width: '100%', aspectRatio: '16/9', overflow: 'hidden', marginBottom: 10 }}>
+                    {/* TV Mode — mockup video */}
                     <div style={{ position: 'absolute', inset: 0, background: '#000', opacity: isTV ? 1 : 0, transition: 'opacity 1s ease', zIndex: isTV ? 1 : 0, overflow: 'hidden' }}>
-                        {tvVideoSrc ? (
-                            <video src={tvVideoSrc} autoPlay muted loop playsInline
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #0f172a, #1e293b)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <IconMonitor size={36} color={T.accent} className="anim-pulse-soft" />
-                                    <div style={{ fontSize: 10, color: T.dim, marginTop: 8 }}>Carregando mídia...</div>
-                                </div>
-                            </div>
-                        )}
+                        <video src="/midiamockup.mp4" autoPlay muted loop playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         {/* Channel overlay — top left */}
                         <div style={{ position: 'absolute', top: 8, left: 10, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.75)', borderRadius: 6, padding: '4px 10px', backdropFilter: 'blur(4px)' }}>
                             <IconMonitor size={11} color={T.accent} />
@@ -404,9 +366,9 @@ export const AnimMentionDetail = () => {
 /* ════════════════ SOCIAL — Compact modal cards with rotating Twitter mentions ════════════════ */
 const CARD_MAX = 340;
 const TWEET_TEXTS = [
-    { user: 'Grok', handle: '@grok', initial: 'G', text: 'Flávio Bolsonaro não foi absolvido em julgamento de mérito. O caso das rachadinhas foi denunciado pelo MP-RJ em 2020, mas o STJ anulou decisões em 2021 por erro de foro.', stats: { rp: 641, res: 61, cur: '3.0K', views: '281.0K' }, followers: '8180.4K', hash: '#FlavioBolsonaro', time: '20:27 · 1 mar. 2026' },
-    { user: 'Senado Federal', handle: '@seabordo', initial: 'S', text: 'O senador Flávio Bolsonaro defendeu hoje a proposta de reforma tributária no plenário, afirmando que "o Brasil precisa de simplificação e menos burocracia."', stats: { rp: 312, res: 89, cur: '1.8K', views: '145.0K' }, followers: '3200.5K', hash: '#ReformaTributária', time: '14:15 · 1 mar. 2026' },
-    { user: 'Política Real', handle: '@politicareal', initial: 'P', text: '"Vamos trabalhar para que o Brasil tenha um governo que respeite o cidadão" — Flávio Bolsonaro na manifestação Acorda Brasil, Av. Paulista.', stats: { rp: 1205, res: 234, cur: '5.2K', views: '420.0K' }, followers: '1540.2K', hash: '#AcordaBrasil', time: '18:40 · 1 mar. 2026' },
+    { user: 'Senado Federal', handle: '@SenadoFederal', initial: 'S', text: 'Senador Flávio Bolsonaro (PL-RJ) apresentou requerimento para oitiva do ministro da Fazenda na Comissão de Assuntos Econômicos sobre os impactos da reforma tributária no setor produtivo.', stats: { rp: 487, res: 132, cur: '2.4K', views: '189.3K' }, followers: '4210.8K', hash: '#SenadoFederal #ReformaTributária', time: '16:42 · 2 mar. 2026' },
+    { user: 'Metrópoles', handle: '@Metropabordes', initial: 'M', text: 'URGENTE: Flávio Bolsonaro articula frente parlamentar com 14 senadores para barrar projeto de regulamentação das redes sociais. "Liberdade de expressão não se negocia", afirmou.', stats: { rp: 1893, res: 341, cur: '7.1K', views: '524.0K' }, followers: '6840.2K', hash: '#RedesSociais #Censura', time: '11:28 · 2 mar. 2026' },
+    { user: 'Correio Braziliense', handle: '@corraborazialiense', initial: 'C', text: 'Em entrevista exclusiva, senador Flávio Bolsonaro defende revisão do marco fiscal e critica "excesso de gastos públicos". Projetos de lei devem ser apresentados ainda essa semana.', stats: { rp: 312, res: 89, cur: '1.8K', views: '145.0K' }, followers: '3420.5K', hash: '#MarcoFiscal #Economia', time: '09:15 · 2 mar. 2026' },
 ];
 
 /* ── Twitter/X Card (compact, accepts tweetIdx for rotation) ── */
@@ -471,9 +433,9 @@ const InstagramCard: React.FC = () => (
         <div style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: T.white }}>SB</div>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: T.white }}>MT</div>
                 </div>
-                <div><div style={{ fontSize: 12, fontWeight: 700, color: T.white }}>SBT News</div><div style={{ fontSize: 9, color: T.dim }}>Instagram</div></div>
+                <div><div style={{ fontSize: 12, fontWeight: 700, color: T.white }}>Metrópoles</div><div style={{ fontSize: 9, color: T.dim }}>Instagram</div></div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e879f9" strokeWidth="1.8"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1.2" fill="#e879f9" stroke="none" /></svg>
         </div>
@@ -483,7 +445,7 @@ const InstagramCard: React.FC = () => (
             <div style={{ position: 'relative', width: '100%', background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.6), transparent)', padding: '30px 12px 12px' }}>
                 <div style={{ width: 40, height: 2, background: T.white, borderRadius: 1, margin: '0 auto 8px' }} />
                 <div style={{ fontSize: 11, fontWeight: 800, color: T.white, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3, lineHeight: 1.3 }}>
-                    FLÁVIO DIZ QUE FALTA<br />MAIORIA PARA IMPEACHMENT<br />DE MINISTROS E ACUSA STF DE...
+                    SENADOR ARTICULA FRENTE<br />CONTRA REGULAMENTAÇÃO<br />DE REDES SOCIAIS
                 </div>
             </div>
         </div>
@@ -494,15 +456,15 @@ const InstagramCard: React.FC = () => (
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" strokeWidth="1.8"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
         </div>
-        <div style={{ padding: '0 10px', fontSize: 11, fontWeight: 700, color: T.white }}>538 curtidas</div>
+        <div style={{ padding: '0 10px', fontSize: 11, fontWeight: 700, color: T.white }}>1.247 curtidas</div>
         <div style={{ padding: '4px 10px 0', fontSize: 11, color: '#cbd5e1', lineHeight: 1.4 }}>
-            <strong style={{ color: T.white }}>SBT News</strong>{' '}Flávio Bolsonaro (PL-RJ) afirmou que há apoio ao impeachment de ministros do STF...
+            <strong style={{ color: T.white }}>Metrópoles</strong>{' '}Flávio Bolsonaro reúne 14 senadores em frente parlamentar pela liberdade digital. Projeto deve ser votado na CAE...
         </div>
-        <div style={{ padding: '3px 10px 0', fontSize: 11, color: '#a78bfa', fontStyle: 'italic' }}>#Politica</div>
+        <div style={{ padding: '3px 10px 0', fontSize: 11, color: '#a78bfa', fontStyle: 'italic' }}>#Politica #RedesSociais</div>
         <div style={{ padding: '4px 10px 0' }}>
-            <div style={{ width: 20, height: 20, borderRadius: '50%', background: T.surface, border: `2px solid ${T.success}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: T.white }}>FN</div>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', background: T.surface, border: `2px solid ${T.success}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: T.white }}>FB</div>
         </div>
-        <div style={{ padding: '4px 10px 0', fontSize: 10, color: T.dim }}>Ver todos os 696 comentários</div>
+        <div style={{ padding: '4px 10px 0', fontSize: 10, color: T.dim }}>Ver todos os 892 comentários</div>
         <div style={{ padding: '2px 10px 10px', fontSize: 8, color: T.dim, textTransform: 'uppercase' }}>HÁ 41 MINUTOS</div>
     </div>
 );
@@ -517,9 +479,9 @@ const TikTokCard: React.FC = () => (
         <div style={{ padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${T.cyan}` }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: T.white }}>PB</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: T.white }}>JP</span>
                 </div>
-                <div><div style={{ fontSize: 12, fontWeight: 700, color: T.white }}>Política BR</div><div style={{ fontSize: 9, color: T.dim }}>TikTok</div></div>
+                <div><div style={{ fontSize: 12, fontWeight: 700, color: T.white }}>Jovem Pan News</div><div style={{ fontSize: 9, color: T.dim }}>TikTok</div></div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#22d3ee"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" /></svg>
         </div>
@@ -537,14 +499,15 @@ const TikTokCard: React.FC = () => (
                 ))}
             </div>
         </div>
-        <div style={{ padding: '8px 10px', fontSize: 11, color: T.white, lineHeight: 1.4 }}>Análise: movimentações pré-eleitorais no Senado Federal. O que esperar de 2026?</div>
-        <div style={{ padding: '0 10px 3px', display: 'flex', gap: 6, fontSize: 10 }}>
+        <div style={{ padding: '8px 10px', fontSize: 11, color: T.white, lineHeight: 1.4 }}>As 5 estratégias que os políticos usam para dominar as redes sociais em 2026 — e como o eleitor pode se proteger da desinformação 🧵👇</div>
+        <div style={{ padding: '0 10px 3px', display: 'flex', gap: 6, fontSize: 10, flexWrap: 'wrap' }}>
             <span style={{ color: T.cyan }}>#PoliticaBR</span>
             <span style={{ color: T.cyan }}>#Eleições2026</span>
+            <span style={{ color: T.cyan }}>#FakeNews</span>
         </div>
         <div style={{ padding: '2px 10px 6px', display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
-            <span style={{ color: T.dim }}>156K views</span>
-            <span style={{ color: T.dim }}>há 6 horas</span>
+            <span style={{ color: T.dim }}>342K views</span>
+            <span style={{ color: T.dim }}>há 2 horas</span>
         </div>
         <div style={{ height: 2, background: '#22d3ee' }} />
     </div>
