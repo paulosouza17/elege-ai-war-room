@@ -163,7 +163,9 @@ export const Apresentacao: React.FC = () => {
                     ...css.slide,
                     ...(i === current ? css.visible : i < current ? css.exited : css.hidden),
                 }}>
-                    <Slide isActive={i === current} />
+                    <div className="slide-content-scaler" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                        <Slide isActive={i === current} />
+                    </div>
                 </div>
             ))}
 

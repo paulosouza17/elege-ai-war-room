@@ -124,27 +124,15 @@ export const SlideCover = () => (
         <div style={{ fontSize: 12, color: T.accent, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 32 }}>
             PLATAFORMA DE INTELIGÊNCIA POLÍTICA
         </div>
-        <h1 style={{
-            fontSize: 80, fontWeight: 900, margin: 0, lineHeight: 1,
-            background: `linear-gradient(135deg, ${T.primary}, ${T.accent})`,
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-        }}>Elege.AI</h1>
-        <p style={{ fontSize: 20, color: T.muted, marginTop: 24, lineHeight: 1.7 }}>
+        <img
+            src="/logo-elegeai-branca.png"
+            alt="Elege.AI"
+            style={{ height: 220, objectFit: 'contain', margin: '0 auto', display: 'block' }}
+        />
+        <p style={{ fontSize: 20, color: T.muted, marginTop: 32, lineHeight: 1.7 }}>
             Monitoramento em tempo real. Análise com IA.<br />
             <span style={{ color: T.white, fontWeight: 600 }}>Resposta estratégica automatizada.</span>
         </p>
-        <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center', gap: 12 }}>
-            {[
-                { icon: <IconMonitor size={14} />, l: 'TV' }, { icon: <IconRadio size={14} />, l: 'Rádio' },
-                { icon: <IconGlobe size={14} />, l: 'Portais' }, { icon: <IconSearch size={14} />, l: 'Twitter/X' },
-                { icon: <IconEye size={14} />, l: 'Instagram' }, { icon: <IconActivity size={14} />, l: 'TikTok' },
-                { icon: <IconMessageCircle size={14} />, l: 'WhatsApp' },
-            ].map(s => (
-                <span key={s.l} style={{ fontSize: 11, color: T.dim, background: T.surface, border: `1px solid ${T.border}`, padding: '6px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {s.icon}{s.l}
-                </span>
-            ))}
-        </div>
         <div style={{ marginTop: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 12, color: T.dim }}>
             <span style={{ fontFamily: T.mono, color: T.muted, background: T.surface, padding: '3px 10px', borderRadius: 4, fontSize: 11 }}>→</span>
             para navegar

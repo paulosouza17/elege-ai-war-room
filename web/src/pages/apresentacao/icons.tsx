@@ -227,6 +227,11 @@ export const GLOBAL_STYLES = `
 .anim-scale-in { animation: scale-in 0.5s cubic-bezier(0.16,1,0.3,1) both; }
 .anim-crossfade-in { animation: crossfade-in 0.6s ease-out both; }
 .anim-crossfade-out { animation: crossfade-out 0.4s ease-in both; }
+
+/* Scale up all text across slides for better readability */
+.slide-content-scaler {
+  zoom: 1.25;
+}
 `;
 
 /* ═══ Badge Component ═══ */
