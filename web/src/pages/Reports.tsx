@@ -621,7 +621,7 @@ export const Reports: React.FC = () => {
                     {/* Period Filter */}
                     <div className="flex items-center gap-1 bg-slate-800/50 border border-slate-700/50 rounded-lg p-0.5">
                         <Clock className="w-3.5 h-3.5 text-slate-500 ml-2" />
-                        {[{ label: '7d', value: 7 }, { label: '15d', value: 15 }, { label: '30d', value: 30 }, { label: 'Tudo', value: null as number | null }].map(opt => (
+                        {[{ label: '1d', value: 1 }, { label: '7d', value: 7 }, { label: '15d', value: 15 }, { label: '30d', value: 30 }, { label: 'Tudo', value: null as number | null }].map(opt => (
                             <button
                                 key={opt.label}
                                 onClick={() => setPeriodDays(opt.value)}
@@ -1186,8 +1186,8 @@ export const Reports: React.FC = () => {
                                                     </td>
                                                     <td className="px-4 py-2 text-center">
                                                         <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${item.sentiment === 'negative' ? 'bg-red-500/10 text-red-400' :
-                                                                item.sentiment === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                                    'bg-slate-700 text-slate-400'
+                                                            item.sentiment === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                                'bg-slate-700 text-slate-400'
                                                             }`}>
                                                             {item.sentiment === 'negative' ? 'Neg' : item.sentiment === 'positive' ? 'Pos' : 'Neutro'}
                                                         </span>
