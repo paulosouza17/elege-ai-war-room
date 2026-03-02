@@ -29,40 +29,43 @@ const SplitSlide: React.FC<{
     children: React.ReactNode;
 }> = ({ title, subtitle, accent = T.primary, icon, points, children }) => (
     <div style={{ maxWidth: 1100, width: '100%', display: 'grid', gridTemplateColumns: '380px 1fr', gap: 48, alignItems: 'start' }}>
-        <div style={{ paddingTop: 16 }}>
+        <div style={{ paddingTop: 16, animation: 'slide-right 0.7s cubic-bezier(0.16,1,0.3,1) both' }}>
             {icon && <div style={{ color: accent, marginBottom: 14, opacity: 0.7 }}>{icon}</div>}
             <h2 style={{ fontSize: 44, fontWeight: 800, margin: 0, color: T.white, letterSpacing: -1, lineHeight: 1.15 }}>{title}</h2>
-            {subtitle && <p style={{ fontSize: 15, color: T.muted, marginTop: 12, lineHeight: 1.7 }}>{subtitle}</p>}
+            {subtitle && <p style={{ fontSize: 17, color: T.muted, marginTop: 12, lineHeight: 1.7 }}>{subtitle}</p>}
             {points && (
-                <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {points.map((p, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', animation: `slide-up 0.6s cubic-bezier(0.16,1,0.3,1) ${0.3 + i * 0.15}s both` }}>
                             <div style={{ color: accent, flexShrink: 0, marginTop: 2 }}>{p.icon}</div>
                             <div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: T.white }}>{p.label}</div>
-                                <div style={{ fontSize: 11, color: T.dim, lineHeight: 1.5 }}>{p.desc}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: T.white }}>{p.label}</div>
+                                <div style={{ fontSize: 12, color: T.dim, lineHeight: 1.6 }}>{p.desc}</div>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
         </div>
-        <div>{children}</div>
+        <div style={{ animation: 'slide-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>{children}</div>
     </div>
 );
 
-const SimFrame: React.FC<{ children: React.ReactNode; glow?: string }> = ({ children, glow }) => (
+const SimFrame: React.FC<{ children: React.ReactNode; glow?: string; noFloat?: boolean }> = ({ children, glow, noFloat }) => (
     <div style={{
         background: T.bg, borderRadius: 16, border: `1px solid ${T.border}`,
         padding: 20, boxShadow: glow ? `0 0 40px -8px ${glow}30, 0 25px 60px -12px rgba(0,0,0,0.5)` : '0 25px 60px -12px rgba(0,0,0,0.5)',
+        animation: noFloat ? undefined : 'mockup-float 5s ease-in-out infinite',
     }}>{children}</div>
 );
 
-const Card: React.FC<{ accent?: string; children: React.ReactNode; glow?: boolean; style?: React.CSSProperties }> = ({ accent = T.primary, children, glow, style }) => (
+const Card: React.FC<{ accent?: string; children: React.ReactNode; glow?: boolean; style?: React.CSSProperties; delay?: number }> = ({ accent = T.primary, children, glow, style, delay }) => (
     <div style={{
         background: T.surface, borderRadius: 12, border: `1px solid ${T.border}`,
-        borderLeft: `4px solid ${accent}`, padding: '14px 18px',
-        ...(glow ? { boxShadow: `inset 0 0 20px ${accent}08` } : {}), ...style,
+        borderLeft: `4px solid ${accent}`, padding: '16px 20px',
+        ...(glow ? { boxShadow: `inset 0 0 20px ${accent}08` } : {}),
+        ...(delay !== undefined ? { animation: `slide-up 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}s both` } : {}),
+        ...style,
     }}>{children}</div>
 );
 
@@ -77,6 +80,42 @@ const KpiCard: React.FC<{ label: string; value: string; accent: string; icon: Re
             <div style={{ color: accent, opacity: 0.4 }}>{icon}</div>
         </div>
     </Card>
+);
+
+/* ════════════════ Impact Transition Slide ════════════════ */
+export const ImpactSlide: React.FC<{
+    line1: string; line2?: string; accent?: string; note?: string;
+}> = ({ line1, line2, accent = T.accent, note }) => (
+    <div style={{ textAlign: 'center', maxWidth: 800 }}>
+        <div style={{ fontSize: 42, fontWeight: 300, color: T.muted, lineHeight: 1.6, letterSpacing: -0.5 }}>
+            {line1}
+        </div>
+        {line2 && (
+            <div style={{ fontSize: 44, fontWeight: 800, color: accent, lineHeight: 1.4, marginTop: 8, letterSpacing: -0.5 }}>
+                {line2}
+            </div>
+        )}
+        {note && (
+            <div style={{ fontSize: 13, color: T.dim, marginTop: 40, fontStyle: 'italic' }}>{note}</div>
+        )}
+    </div>
+);
+
+/* ════════════════ PRINT PLACEHOLDER ════════════════
+   Componente que marca onde um print real do sistema
+   deve ser inserido futuramente via props.
+   ══════════════════════════════════════════════════ */
+export const ScreenPlaceholder: React.FC<{ label: string; screen: string }> = ({ label, screen }) => (
+    <div style={{
+        background: `repeating-linear-gradient(45deg, ${T.surface}, ${T.surface} 10px, ${T.bg} 10px, ${T.bg} 20px)`,
+        borderRadius: 12, border: `2px dashed ${T.primary}40`, padding: '24px 20px',
+        textAlign: 'center', minHeight: 120, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.7,
+    }}>
+        <IconMonitor size={24} color={T.primary} />
+        <div style={{ fontSize: 12, fontWeight: 700, color: T.primary }}>{label}</div>
+        <div style={{ fontSize: 10, color: T.dim }}>Substituir por: print de {screen}</div>
+    </div>
 );
 
 /* ════════════════ SLIDE 1: Cover ════════════════ */
@@ -435,60 +474,8 @@ export const SimFeedSocial = () => (
     </SplitSlide>
 );
 
-/* ════════════════ SLIDE 8: Radar de Ameaças ════════════════ */
-export const SimThreats = () => (
-    <SplitSlide title="Radar de Ameaças" subtitle="Identifica e ranqueia automaticamente os perfis que mais atacam o candidato. Agrega menções negativas por autor, calcula alcance e nível de risco."
-        accent={T.danger} icon={<IconShield size={32} />}
-        points={[
-            { icon: <IconUsers size={16} />, label: 'Perfis Hostis Ranqueados', desc: 'Ordenação por frequência de ataque, número de seguidores e risk score' },
-            { icon: <IconTarget size={16} />, label: 'Entidade Mais Atacada', desc: 'Visualização de quem está sofrendo mais ataques na rede' },
-            { icon: <IconLock size={16} />, label: 'WhatsApp (em desenvolvimento)', desc: 'Detecção de ameaças em grupos políticos de WhatsApp' },
-        ]}
-    >
-        <SimFrame glow={T.danger}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <IconShield size={18} color={T.danger} /> <span style={{ fontSize: 16, fontWeight: 700, color: T.white }}>Radar de Ameaças</span>
-                <Badge label="3 Críticos" color={T.danger} /> <Badge label="5 Altos" color="#f97316" />
-            </div>
-            {[
-                { name: 'Carlos Opositor', user: '@opositor_real', level: 'CRÍTICO', color: T.danger, m: 12, f: '45.2k', r: 78, entity: 'Flávio Bolsonaro (8x)' },
-                { name: 'Bot Crítico 22', user: '@critico_bot22', level: 'ALTO', color: '#f97316', m: 7, f: '12.1k', r: 65, entity: 'Jair Bolsonaro (5x)' },
-            ].map((p, i) => (
-                <div key={i} style={{ background: `${p.color}06`, border: `1px solid ${p.color}20`, borderLeft: `3px solid ${p.color}`, borderRadius: 10, padding: '10px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', border: `2px solid ${p.color}`, background: T.surfaceLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: T.muted, flexShrink: 0 }}>
-                        {p.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 12, fontWeight: 700, color: T.white }}>{p.name}</span><Badge label={p.level} color={p.color} /></div>
-                        <div style={{ fontSize: 9, color: T.dim }}>{p.user}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 14, textAlign: 'center' }}>
-                        <div><div style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: T.danger }}>{p.m}</div><div style={{ fontSize: 7, color: T.dim, textTransform: 'uppercase' }}>Menções</div></div>
-                        <div><div style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: T.white }}>{p.f}</div><div style={{ fontSize: 7, color: T.dim, textTransform: 'uppercase' }}>Seguidores</div></div>
-                        <div><div style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: p.color }}>{p.r}%</div><div style={{ fontSize: 7, color: T.dim, textTransform: 'uppercase' }}>Risco</div></div>
-                    </div>
-                    <div style={{ fontSize: 9, color: T.danger, background: `${T.danger}10`, border: `1px solid ${T.danger}20`, padding: '3px 8px', borderRadius: 20, flexShrink: 0 }}>
-                        <IconTarget size={10} color={T.danger} /> {p.entity}
-                    </div>
-                </div>
-            ))}
-            {/* Most attacked */}
-            <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                    <IconTarget size={12} /> Mais Atacados
-                </div>
-                {[{ n: 'Flávio Bolsonaro', p: 100, c: 15 }, { n: 'Jair Bolsonaro', p: 60, c: 9 }].map(e => (
-                    <div key={e.n} style={{ marginBottom: 6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 3 }}>
-                            <span style={{ color: '#cbd5e1' }}>{e.n}</span><span style={{ color: T.danger, fontWeight: 700, fontFamily: T.mono }}>{e.c}x</span>
-                        </div>
-                        <div style={{ height: 4, background: T.surfaceLight, borderRadius: 2 }}><div style={{ height: '100%', width: `${e.p}%`, background: `${T.danger}80`, borderRadius: 2, animation: 'bar-fill 1s ease-out' }} /></div>
-                    </div>
-                ))}
-            </div>
-        </SimFrame>
-    </SplitSlide>
-);
+/* ════════════════ SLIDE 8: Radar de Ameaças — uses animated component ════════════════ */
+export { AnimThreat as SimThreats } from './animated-slides';
 
 /* ════════════════ SLIDE 9: WhatsApp ════════════════ */
 export const SlideWhatsApp = () => (

@@ -1283,40 +1283,25 @@ export const Dashboard: React.FC = () => {
 
                             {!wordFeedLoading && (
                                 <>
-                                    {/* === Source Cards (24h) === */}
-                                    {wordSourceCounts.length > 0 && (
-                                        <div>
-                                            <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                                <Newspaper className="w-3.5 h-3.5" />
-                                                Veículos — Últimas 24h
-                                            </h3>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {wordSourceCounts.map(({ source, count }) => {
-                                                    const colors = getSourceColor(source);
-                                                    return (
-                                                        <div
-                                                            key={source}
-                                                            className={`flex items-center gap-2.5 p-2.5 rounded-lg border ${colors.border} ${colors.bg} transition-all hover:scale-[1.02]`}
-                                                        >
-                                                            <div className={`p-1.5 rounded-md bg-slate-950/60 ${colors.text}`}>
-                                                                {getSourceIconForPanel(source)}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className={`text-xs font-semibold truncate capitalize ${colors.text}`}>
-                                                                    {source}
-                                                                </p>
-                                                                <p className="text-lg font-mono font-bold text-white leading-none mt-0.5">
-                                                                    {count}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                    {/* === Summary KPIs === */}
+                                    {(wordFeedItems.length > 0 || wordSourceCounts.length > 0) && (
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-center">
+                                                <p className="text-lg font-mono font-bold text-white">{wordFeedItems.length}</p>
+                                                <p className="text-[9px] text-slate-500 uppercase tracking-wider">Menções</p>
+                                            </div>
+                                            <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-center">
+                                                <p className="text-lg font-mono font-bold text-emerald-400">{wordFeedItems.filter((i: any) => i.sentiment === 'positive').length}</p>
+                                                <p className="text-[9px] text-slate-500 uppercase tracking-wider">Positivas</p>
+                                            </div>
+                                            <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-center">
+                                                <p className="text-lg font-mono font-bold text-red-400">{wordFeedItems.filter((i: any) => i.sentiment === 'negative').length}</p>
+                                                <p className="text-[9px] text-slate-500 uppercase tracking-wider">Negativas</p>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* === 7-Day Trend Line Chart === */}
+                                    {/* === 7-Day Trend Line Chart (FIRST) === */}
                                     {wordTrendData.length > 0 && (
                                         <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
                                             <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -1362,7 +1347,58 @@ export const Dashboard: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* === Feed Items === */}
+                                    {/* === Veículos — Accordion (closed by default) === */}
+                                    {wordSourceCounts.length > 0 && (() => {
+                                        const totalSources = wordSourceCounts.reduce((s, c) => s + c.count, 0);
+                                        return (
+                                            <div className="border border-slate-800 rounded-xl overflow-hidden">
+                                                <button
+                                                    onClick={() => {
+                                                        const el = document.getElementById('word-sources-panel');
+                                                        if (el) el.classList.toggle('hidden');
+                                                        const icon = document.getElementById('word-sources-chevron');
+                                                        if (icon) icon.classList.toggle('rotate-180');
+                                                    }}
+                                                    className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-900/60 hover:bg-slate-900/80 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Newspaper className="w-3.5 h-3.5 text-slate-500" />
+                                                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Veículos — 24h</span>
+                                                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">{wordSourceCounts.length} fontes</span>
+                                                        <span className="text-[10px] font-mono text-slate-500">{totalSources} menções</span>
+                                                    </div>
+                                                    <ChevronDown id="word-sources-chevron" className="w-4 h-4 text-slate-500 transition-transform duration-200" />
+                                                </button>
+                                                <div id="word-sources-panel" className="hidden px-4 py-3 border-t border-slate-800">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {wordSourceCounts.map(({ source, count }) => {
+                                                            const colors = getSourceColor(source);
+                                                            return (
+                                                                <div
+                                                                    key={source}
+                                                                    className={`flex items-center gap-2.5 p-2.5 rounded-lg border ${colors.border} ${colors.bg} transition-all hover:scale-[1.02]`}
+                                                                >
+                                                                    <div className={`p-1.5 rounded-md bg-slate-950/60 ${colors.text}`}>
+                                                                        {getSourceIconForPanel(source)}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className={`text-xs font-semibold truncate capitalize ${colors.text}`}>
+                                                                            {source}
+                                                                        </p>
+                                                                        <p className="text-lg font-mono font-bold text-white leading-none mt-0.5">
+                                                                            {count}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* === Feed Items (Menções recentes) === */}
                                     {wordFeedItems.length === 0 && (
                                         <div className="text-center py-8 text-slate-500">
                                             <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />

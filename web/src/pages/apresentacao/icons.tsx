@@ -171,22 +171,62 @@ export const T = {
 /* ═══ CSS Animations (inject once) ═══ */
 export const GLOBAL_STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* Base keyframes */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 @keyframes pulse-soft { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
-@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
 @keyframes scan { 0% { left:-30%; } 100% { left:130%; } }
-@keyframes glow-pulse { 0%,100% { box-shadow:0 0 8px rgba(59,130,246,0.3); } 50% { box-shadow:0 0 20px rgba(59,130,246,0.6); } }
-@keyframes bar-fill { from { width:0; } }
-@keyframes fade-up { from { opacity:0;transform:translateY(16px); } to { opacity:1;transform:translateY(0); } }
 @keyframes typing { from { width:0; } to { width:100%; } }
 @keyframes blink { 0%,100% { border-color:transparent; } 50% { border-color:#94a3b8; } }
+@keyframes bar-fill { from { width:0; } }
+
+/* Mockup floating — sensação de leveza */
+@keyframes mockup-float {
+  0%,100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-5px) rotate(0.15deg); }
+  50% { transform: translateY(-8px) rotate(0deg); }
+  75% { transform: translateY(-3px) rotate(-0.15deg); }
+}
+
+/* Entry animations */
+@keyframes slide-up { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slide-right { from { opacity:0; transform:translateX(-32px); } to { opacity:1; transform:translateX(0); } }
+@keyframes scale-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+@keyframes fade-up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+/* Crossfade for rotating content */
+@keyframes crossfade-in { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes crossfade-out { from { opacity:1; transform:translateY(0) scale(1); } to { opacity:0; transform:translateY(-12px) scale(0.97); } }
+
+/* Line chart animated draw */
+@keyframes line-draw-anim { from { stroke-dashoffset: 600; } to { stroke-dashoffset: 0; } }
+@keyframes fade-in { from { opacity:0; } to { opacity:1; } }
+
+/* Glow pulse */
+@keyframes glow-pulse { 0%,100% { box-shadow:0 0 8px rgba(59,130,246,0.3); } 50% { box-shadow:0 0 20px rgba(59,130,246,0.6); } }
+@keyframes glow-danger { 0%,100% { box-shadow:0 0 8px rgba(239,68,68,0.2); } 50% { box-shadow:0 0 20px rgba(239,68,68,0.5); } }
+
+/* Waveform for radio audio */
+@keyframes wave-1 { 0%,100% { height:30%; } 50% { height:90%; } }
+@keyframes wave-2 { 0%,100% { height:60%; } 50% { height:20%; } }
+@keyframes wave-3 { 0%,100% { height:45%; } 50% { height:80%; } }
+@keyframes wave-4 { 0%,100% { height:70%; } 50% { height:35%; } }
+@keyframes wave-5 { 0%,100% { height:25%; } 50% { height:65%; } }
+
+/* Utility classes */
 .anim-pulse { animation: pulse 2s ease-in-out infinite; }
 .anim-pulse-soft { animation: pulse-soft 3s ease-in-out infinite; }
-.anim-float { animation: float 3s ease-in-out infinite; }
+.anim-float { animation: mockup-float 5s ease-in-out infinite; }
 .anim-spin { animation: spin 8s linear infinite; }
 .anim-spin-fast { animation: spin 2s linear infinite; }
 .anim-glow { animation: glow-pulse 2s ease-in-out infinite; }
+.anim-glow-danger { animation: glow-danger 2s ease-in-out infinite; }
+.anim-entry { animation: slide-up 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-entry-right { animation: slide-right 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-scale-in { animation: scale-in 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.anim-crossfade-in { animation: crossfade-in 0.6s ease-out both; }
+.anim-crossfade-out { animation: crossfade-out 0.4s ease-in both; }
 `;
 
 /* ═══ Badge Component ═══ */

@@ -667,34 +667,7 @@ export const IntelligenceFeed: React.FC = () => {
         } else {
             let newData = data as Mention[];
 
-            // Entity/keyword filter for TV/Radio: only show items matching activation's people + keywords
-            if ((feedTab === 'tv' || feedTab === 'radio') && activations.length > 0) {
-                const allPeople = activations.flatMap(a => (a.people_of_interest || []).map(p => p.toLowerCase().trim()));
-                const allKeywords = activations.flatMap(a => safeKeywords(a.keywords || []).map(k => k.toLowerCase().trim()));
-                const searchTerms = [...new Set([...allPeople, ...allKeywords])];
-
-                if (searchTerms.length > 0) {
-                    newData = newData.filter(m => {
-                        const cm = m.classification_metadata || {};
-                        // Build searchable text from all relevant fields
-                        const entities = (cm.detected_entities || []).map((e: string) => e.toLowerCase());
-                        const peaEntities = (cm.per_entity_analysis || []).map((ea: any) => (ea.entity || ea.entity_name || '').toLowerCase());
-                        const itemKeywords = safeKeywords(cm.keywords || []).map(k => k.toLowerCase());
-                        const personName = (cm.person_name || '').toLowerCase();
-                        const titleLower = (m.title || '').toLowerCase();
-                        const contentLower = (m.content || m.summary || '').toLowerCase();
-
-                        return searchTerms.some(term =>
-                            entities.some((e: string) => e.includes(term) || term.includes(e)) ||
-                            peaEntities.some((e: string) => e.includes(term) || term.includes(e)) ||
-                            itemKeywords.some(k => k.includes(term)) ||
-                            (personName && (personName.includes(term) || term.includes(personName))) ||
-                            titleLower.includes(term) ||
-                            contentLower.includes(term)
-                        );
-                    });
-                }
-            }
+            // TV, Radio and Social tabs: show ALL content without filtering by activation's people/keywords
 
             if (append) {
                 setMentions(prev => {
@@ -1848,25 +1821,27 @@ export const IntelligenceFeed: React.FC = () => {
                 );
             })()}
 
-            {/* Floating Instagram Card */}
+            {/* Floating Instagram Card — follows TV model with inline media */}
             {selectedMention && feedTab === 'instagram' && (() => {
                 const meta = selectedMention.classification_metadata || {} as any;
                 const assets = meta.assets || [];
                 const postId = meta.elege_post_id;
-                const imageAsset = assets.find((a: any) => a.kind === 'image' || (a.media_type && a.media_type.startsWith('image')));
-                const videoAsset = assets.find((a: any) => a.kind === 'video' || (a.media_type && a.media_type.startsWith('video')));
+                const imageAssets = assets.filter((a: any) => a.kind === 'image' || (a.media_type && a.media_type.startsWith('image')));
+                const videoAssets = assets.filter((a: any) => a.kind === 'video' || (a.media_type && a.media_type.startsWith('video')));
                 const entities = meta.detected_entities || [];
                 const likes = meta.engagement?.likes || meta.like_count || 0;
                 const comments = meta.engagement?.comments || meta.comment_count || 0;
                 const caption = selectedMention.text || selectedMention.content || selectedMention.summary || '';
                 const username = meta.author_username || meta.source_name || selectedMention.source || 'instagram_user';
                 const hashtags = safeKeywords(selectedMention.classification_metadata?.keywords || []).filter((k: string) => k.startsWith('#') || !k.includes(' ')).slice(0, 6);
+                const hasMedia = (imageAssets.length > 0 || videoAssets.length > 0) && postId;
+                const isReel = videoAssets.length > 0;
 
                 return (
                     <div className="absolute inset-0 right-[450px] z-20 flex items-center justify-center p-8 pointer-events-none">
-                        <div className="w-full max-w-[420px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-slate-700/50 pointer-events-auto bg-slate-900">
+                        <div className="w-full max-w-[480px] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-slate-700/50 pointer-events-auto bg-slate-900 max-h-[90vh] overflow-y-auto scrollbar-thin">
                             {/* Instagram header */}
-                            <div className="p-3 flex items-center gap-3 border-b border-slate-800 bg-gradient-to-r from-fuchsia-950/30 via-slate-900 to-purple-950/30">
+                            <div className="p-3 flex items-center gap-3 border-b border-slate-800 bg-gradient-to-r from-fuchsia-950/30 via-slate-900 to-purple-950/30 sticky top-0 z-10">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 p-[2px]">
                                     <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-bold text-white">
                                         {username.slice(0, 2).toUpperCase()}
@@ -1874,26 +1849,33 @@ export const IntelligenceFeed: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-white">{username}</p>
-                                    <p className="text-[10px] text-slate-500">Instagram</p>
+                                    <p className="text-[10px] text-slate-500">{isReel ? 'Reels' : 'Instagram'}</p>
                                 </div>
-                                <svg className="w-5 h-5 ml-auto text-fuchsia-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+                                {isReel && (
+                                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 ml-auto">Reel</span>
+                                )}
+                                <svg className={`w-5 h-5 ${isReel ? '' : 'ml-auto'} text-fuchsia-400`} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
                             </div>
 
-                            {/* Media */}
-                            <div className="relative w-full aspect-square bg-black flex items-center justify-center">
-                                {videoAsset && postId ? (
-                                    <video controls preload="metadata" className="w-full h-full object-cover">
-                                        <source src={`/api/elege/assets/${postId}/${videoAsset.id}`} />
+                            {/* Main Media — Video Player for Reels, Image for Feed Posts */}
+                            {isReel && postId ? (
+                                <div className="relative w-full aspect-[9/16] max-h-[400px] bg-black flex items-center justify-center">
+                                    <video controls preload="metadata" className="w-full h-full object-contain">
+                                        <source src={`/api/elege/assets/${postId}/${videoAssets[0].id}`} type="video/mp4" />
                                     </video>
-                                ) : imageAsset && postId ? (
-                                    <img src={`/api/elege/assets/${postId}/${imageAsset.id}`} className="w-full h-full object-cover" />
-                                ) : (
+                                </div>
+                            ) : imageAssets.length > 0 && postId ? (
+                                <div className="relative w-full aspect-square bg-black flex items-center justify-center">
+                                    <img src={`/api/elege/assets/${postId}/${imageAssets[0].id}`} className="w-full h-full object-cover" alt="" />
+                                </div>
+                            ) : (
+                                <div className="relative w-full aspect-square bg-black flex items-center justify-center">
                                     <div className="flex flex-col items-center gap-2 text-slate-500">
                                         <Image className="w-10 h-10" />
                                         <span className="text-sm">Mídia não disponível</span>
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
 
                             {/* Engagement */}
                             <div className="px-4 py-2 flex items-center gap-4">
@@ -1954,9 +1936,111 @@ export const IntelligenceFeed: React.FC = () => {
                             </div>
 
                             {/* Timestamp */}
-                            <div className="px-4 pb-3">
+                            <div className="px-4 pb-3 border-b border-slate-800">
                                 <p className="text-[10px] text-slate-600 uppercase">{formatDistanceToNow(new Date(selectedMention.created_at), { addSuffix: true, locale: ptBR })}</p>
                             </div>
+
+                            {/* ── Mídias Inline (TV model) ── */}
+                            {hasMedia && (
+                                <div className="border-t border-slate-800">
+                                    {/* Video Player (if has video alongside images) */}
+                                    {videoAssets.length > 0 && postId && (
+                                        <div className="p-4 border-b border-slate-800">
+                                            <h4 className="text-[10px] text-fuchsia-400 uppercase tracking-wider font-bold mb-2 flex items-center gap-1.5">
+                                                <Play className="w-3 h-3" /> Vídeo {isReel ? '(Reel)' : ''}
+                                            </h4>
+                                            <div className="rounded-lg overflow-hidden border border-slate-700 bg-black">
+                                                <video
+                                                    controls
+                                                    preload="metadata"
+                                                    className="w-full max-h-[250px] object-contain"
+                                                    poster={imageAssets.length > 0 ? `/api/elege/assets/${postId}/${imageAssets[0].id}` : undefined}
+                                                >
+                                                    <source src={`/api/elege/assets/${postId}/${videoAssets[0].id}`} type="video/mp4" />
+                                                </video>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Image Carousel */}
+                                    {imageAssets.length > 0 && postId && (
+                                        <div className="p-4">
+                                            <h4 className="text-[10px] text-fuchsia-400 uppercase tracking-wider font-bold mb-2 flex items-center gap-1.5">
+                                                <Image className="w-3 h-3" /> Mídias ({imageAssets.length + videoAssets.length})
+                                            </h4>
+                                            <div className="relative group">
+                                                <div
+                                                    id={`ig-carousel-${selectedMention.id}`}
+                                                    className="flex gap-2 overflow-x-auto scrollbar-thin pb-2 snap-x snap-mandatory"
+                                                >
+                                                    {imageAssets.map((img: any, idx: number) => (
+                                                        <img
+                                                            key={idx}
+                                                            src={`/api/elege/assets/${postId}/${img.id}`}
+                                                            alt={`Mídia ${idx + 1}`}
+                                                            className="w-40 h-40 object-cover rounded-lg border border-slate-700 shrink-0 snap-start cursor-pointer hover:border-fuchsia-500/50 transition-colors"
+                                                            loading="lazy"
+                                                        />
+                                                    ))}
+                                                </div>
+                                                {imageAssets.length > 2 && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => document.getElementById(`ig-carousel-${selectedMention.id}`)?.scrollBy({ left: -340, behavior: 'smooth' })}
+                                                            className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-900/90 border border-slate-600 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <ChevronLeft className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => document.getElementById(`ig-carousel-${selectedMention.id}`)?.scrollBy({ left: 340, behavior: 'smooth' })}
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-900/90 border border-slate-600 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <p className="text-[10px] text-slate-500 mt-1">{imageAssets.length} imagens capturadas</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Download Button */}
+                                    <div className="px-4 pb-3 flex items-center gap-2">
+                                        {videoAssets.length > 0 && postId && (
+                                            <button
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-400 text-xs font-medium hover:bg-fuchsia-500/30 transition-colors"
+                                                onClick={() => {
+                                                    const a = document.createElement('a');
+                                                    a.href = `/api/elege/assets/${postId}/${videoAssets[0].id}`;
+                                                    a.download = `${(selectedMention.title || 'instagram_reel').replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                }}
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Baixar Vídeo
+                                            </button>
+                                        )}
+                                        {imageAssets.length > 0 && postId && (
+                                            <button
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-xs font-medium hover:bg-slate-700 hover:text-white transition-colors"
+                                                onClick={() => {
+                                                    const a = document.createElement('a');
+                                                    a.href = `/api/elege/assets/${postId}/${imageAssets[0].id}`;
+                                                    a.download = `${(selectedMention.title || 'instagram_post').replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    document.body.removeChild(a);
+                                                }}
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Baixar Imagem
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Sentiment bar */}
                             <div className={`h-1 w-full ${selectedMention.sentiment === 'negative' ? 'bg-red-500' : selectedMention.sentiment === 'positive' ? 'bg-emerald-500' : 'bg-slate-600'}`} />
@@ -2123,8 +2207,8 @@ export const IntelligenceFeed: React.FC = () => {
                             return null;
                         })()}
 
-                        {/* Mídias Geradas — Carousel (hidden for TV/Radio — media is in the floating card) */}
-                        {feedTab !== 'tv' && feedTab !== 'radio' && (() => {
+                        {/* Mídias Geradas — Carousel (hidden for TV/Radio/Instagram — media is in the floating card) */}
+                        {feedTab !== 'tv' && feedTab !== 'radio' && feedTab !== 'instagram' && (() => {
                             const assets = selectedMention.classification_metadata?.assets || [];
                             const postId = selectedMention.classification_metadata?.elege_post_id;
                             if (assets.length === 0 || !postId) return null;
