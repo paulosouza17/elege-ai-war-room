@@ -32,10 +32,16 @@ echo "✅ Caches limpos"
 
 # ──────────────────────────────────────────────────────
 echo ""
-echo "🔧 Instalando dependências..."
 
-cd "$BASE/backend" && npm install --silent
-cd "$BASE/web" && npm install --silent
+# Só instala dependências se package-lock.json mudou no último pull
+CHANGED=$(git diff HEAD~1 --name-only 2>/dev/null | grep -c "package-lock.json" || true)
+if [ "$CHANGED" -gt 0 ]; then
+    echo "🔧 package-lock.json alterado — instalando dependências..."
+    cd "$BASE/backend" && npm install --silent
+    cd "$BASE/web" && npm install --silent
+else
+    echo "⏩ Dependências não alteradas — pulando npm install"
+fi
 
 # ──────────────────────────────────────────────────────
 echo ""
