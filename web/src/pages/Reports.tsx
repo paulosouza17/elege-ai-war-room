@@ -4,7 +4,7 @@ import {
     MessageSquare, Hash, Users, Radio, Loader2, ChevronDown,
     ChevronRight, RefreshCw, Globe, Calendar, Table, FileSpreadsheet,
     AlertOctagon, Sparkles, Brain, GitCompareArrows, BarChart3,
-    ArrowRight, Eye
+    ArrowRight, Eye, ExternalLink, Filter, Clock, UserX, Tv, Mic
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useUserActivations } from '@/hooks/useUserActivations';
@@ -216,7 +216,7 @@ export const Reports: React.FC = () => {
     const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
     const [dataLoading, setDataLoading] = useState(false);
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-        kpis: true, strategic: true, risk: true, keywords: true, targets: true, sources: true, riskItems: true, crises: true, ai: false, compare: false,
+        kpis: true, strategic: true, risk: true, keywords: true, targets: true, sources: true, riskItems: true, crises: true, ai: false, compare: false, vehicles: false, threats: false,
     });
     const reportRef = useRef<HTMLDivElement>(null);
 
@@ -230,6 +230,18 @@ export const Reports: React.FC = () => {
     const [compareIds, setCompareIds] = useState<string[]>([]);
     const [compareSummaries, setCompareSummaries] = useState<Record<string, SummaryData>>({});
     const [compareLoading, setCompareLoading] = useState(false);
+
+    // Period Filter
+    const [periodDays, setPeriodDays] = useState<number | null>(null); // null = all time
+
+    // Vehicle Filter
+    const [vehicleFilter, setVehicleFilter] = useState<string | null>(null); // null = all
+    const [vehicleItems, setVehicleItems] = useState<{ id: string; title: string; url: string | null; source: string; source_type: string; sentiment: string; risk_score: number; created_at: string }[]>([]);
+    const [vehicleLoading, setVehicleLoading] = useState(false);
+
+    // Threats Data
+    const [threatProfiles, setThreatProfiles] = useState<{ key: string; displayName: string; username: string | null; profileImage: string | null; followers: number | null; verified: boolean; negativeMentionCount: number; avgRiskScore: number; maxRiskScore: number; sourceTypes: string[]; lastActivity: string }[]>([]);
+    const [threatsLoading, setThreatsLoading] = useState(false);
 
     // Auto-select first activation
     useEffect(() => {
@@ -321,6 +333,115 @@ export const Reports: React.FC = () => {
     useEffect(() => {
         if (compareMode && compareIds.length >= 2) fetchCompareSummaries();
     }, [compareIds, compareMode]);
+
+    // Fetch vehicle items when activation + filter changes
+    const fetchVehicleItems = async () => {
+        if (!selectedActivation) return;
+        setVehicleLoading(true);
+        try {
+            let query = supabase
+                .from('intelligence_feed')
+                .select('id, title, url, source, source_type, sentiment, risk_score, created_at')
+                .eq('activation_id', selectedActivation)
+                .neq('status', 'archived')
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (vehicleFilter) query = query.eq('source_type', vehicleFilter);
+            if (periodDays) {
+                const since = new Date();
+                since.setDate(since.getDate() - periodDays);
+                query = query.gte('created_at', since.toISOString());
+            }
+            const { data, error } = await query;
+            if (!error && data) setVehicleItems(data as any);
+        } catch (err) { console.error('[Vehicle] Error:', err); }
+        finally { setVehicleLoading(false); }
+    };
+
+    // Fetch threat profiles for selected activation
+    const fetchThreatProfiles = async () => {
+        if (!selectedActivation) return;
+        setThreatsLoading(true);
+        try {
+            let query = supabase
+                .from('intelligence_feed')
+                .select('id, title, source, source_type, risk_score, sentiment, created_at, classification_metadata')
+                .eq('activation_id', selectedActivation)
+                .eq('sentiment', 'negative')
+                .neq('status', 'archived')
+                .order('created_at', { ascending: false })
+                .limit(500);
+            if (periodDays) {
+                const since = new Date();
+                since.setDate(since.getDate() - periodDays);
+                query = query.gte('created_at', since.toISOString());
+            }
+            const { data, error } = await query;
+            if (!error && data) {
+                // Aggregate by author/source
+                const profileMap = new Map<string, any>();
+                for (const item of data as any[]) {
+                    const cm = item.classification_metadata || {};
+                    const key = cm.author_username || cm.author_name || item.source || 'desconhecido';
+                    if (!profileMap.has(key)) {
+                        profileMap.set(key, {
+                            key,
+                            displayName: cm.author_name || item.source || key,
+                            username: cm.author_username || null,
+                            profileImage: cm.author_profile_image || null,
+                            followers: cm.author_followers || null,
+                            verified: cm.author_verified || false,
+                            negativeMentionCount: 0,
+                            avgRiskScore: 0,
+                            maxRiskScore: 0,
+                            sourceTypes: new Set<string>(),
+                            totalRisk: 0,
+                            lastActivity: item.created_at,
+                        });
+                    }
+                    const p = profileMap.get(key)!;
+                    p.negativeMentionCount++;
+                    p.totalRisk += (item.risk_score || 0);
+                    p.maxRiskScore = Math.max(p.maxRiskScore, item.risk_score || 0);
+                    p.sourceTypes.add(item.source_type || 'portal');
+                    if (new Date(item.created_at) > new Date(p.lastActivity)) p.lastActivity = item.created_at;
+                    if (!p.followers && cm.author_followers) p.followers = cm.author_followers;
+                    if (!p.profileImage && cm.author_profile_image) p.profileImage = cm.author_profile_image;
+                }
+                const profiles = Array.from(profileMap.values()).map((p: any) => ({
+                    ...p,
+                    avgRiskScore: Math.round(p.totalRisk / p.negativeMentionCount),
+                    sourceTypes: Array.from(p.sourceTypes),
+                })).sort((a: any, b: any) => b.negativeMentionCount - a.negativeMentionCount || b.maxRiskScore - a.maxRiskScore);
+                setThreatProfiles(profiles);
+            }
+        } catch (err) { console.error('[Threats] Error:', err); }
+        finally { setThreatsLoading(false); }
+    };
+
+    // Refetch when activation or period changes
+    useEffect(() => {
+        if (selectedActivation && !compareMode) {
+            fetchVehicleItems();
+            fetchThreatProfiles();
+        }
+    }, [selectedActivation, periodDays, vehicleFilter, compareMode]);
+
+    // Available source types from current vehicle items + sources
+    const availableSourceTypes = useMemo(() => {
+        const types = new Set<string>();
+        (summaryData?.sources || []).forEach(s => {
+            // infer source type from source name
+            types.add(s.source.toLowerCase().includes('twitter') || s.source.toLowerCase().includes('x.com') ? 'social_media' : 'portal');
+        });
+        vehicleItems.forEach(v => types.add(v.source_type));
+        return Array.from(types).sort();
+    }, [summaryData, vehicleItems]);
+
+    const sourceTypeLabels: Record<string, string> = {
+        portal: 'Portais', social_media: 'Redes Sociais', tv: 'TV', radio: 'Rádio',
+        instagram: 'Instagram', tiktok: 'TikTok', whatsapp: 'WhatsApp', twitter: 'Twitter/X',
+    };
 
     const toggleSection = (key: string) => {
         setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -493,6 +614,45 @@ export const Reports: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* ─── FILTER BAR (no-print) ─── */}
+            {!compareMode && selectedActivation && !dataLoading && summaryData && (
+                <div className="no-print px-6 pb-4 flex flex-wrap items-center gap-3">
+                    {/* Period Filter */}
+                    <div className="flex items-center gap-1 bg-slate-800/50 border border-slate-700/50 rounded-lg p-0.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-500 ml-2" />
+                        {[{ label: '7d', value: 7 }, { label: '15d', value: 15 }, { label: '30d', value: 30 }, { label: 'Tudo', value: null as number | null }].map(opt => (
+                            <button
+                                key={opt.label}
+                                onClick={() => setPeriodDays(opt.value)}
+                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${periodDays === opt.value ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Vehicle Filter */}
+                    <div className="flex items-center gap-1 bg-slate-800/50 border border-slate-700/50 rounded-lg p-0.5">
+                        <Filter className="w-3.5 h-3.5 text-slate-500 ml-2" />
+                        <button
+                            onClick={() => setVehicleFilter(null)}
+                            className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${vehicleFilter === null ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Todos
+                        </button>
+                        {availableSourceTypes.map(type => (
+                            <button
+                                key={type}
+                                onClick={() => setVehicleFilter(type)}
+                                className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${vehicleFilter === type ? 'bg-orange-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                {sourceTypeLabels[type] || type}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* ─── REPORT CONTENT ─── */}
             {compareMode ? (
@@ -981,13 +1141,234 @@ export const Reports: React.FC = () => {
                         </SectionWrapper>
                     )}
 
+                    {/* ═══ SECTION 8: VEHICLE DETAILS ═══ */}
+                    <SectionWrapper
+                        title={`Detalhamento por Veículo${vehicleFilter ? ` — ${sourceTypeLabels[vehicleFilter] || vehicleFilter}` : ''}`}
+                        icon={<Globe className="w-5 h-5 text-orange-400" />}
+                        sectionKey="vehicles"
+                        expanded={expandedSections.vehicles}
+                        onToggle={toggleSection}
+                    >
+                        {vehicleLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
+                            </div>
+                        ) : vehicleItems.length === 0 ? (
+                            <p className="text-sm text-slate-500 italic">Nenhum item encontrado para este filtro.</p>
+                        ) : (
+                            <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-700/50 text-left">
+                                            <th className="px-4 py-3 text-slate-400 font-medium">Título</th>
+                                            <th className="px-4 py-3 text-slate-400 font-medium text-center w-24">Veículo</th>
+                                            <th className="px-4 py-3 text-slate-400 font-medium text-center w-20">Sentimento</th>
+                                            <th className="px-4 py-3 text-slate-400 font-medium text-center w-16">Risco</th>
+                                            <th className="px-4 py-3 text-slate-400 font-medium text-center w-28">Data</th>
+                                            <th className="px-4 py-3 text-slate-400 font-medium text-center w-16">Fonte</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {vehicleItems.slice(0, 50).map((item, i) => {
+                                            const isMediaOnly = item.source_type === 'tv' || item.source_type === 'radio';
+                                            return (
+                                                <tr key={item.id} className={`border-b border-slate-700/30 ${i % 2 ? 'bg-slate-800/30' : ''}`}>
+                                                    <td className="px-4 py-2 text-white max-w-sm">
+                                                        <span className="line-clamp-1">{item.title || '—'}</span>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        <span className="text-xs text-slate-400 flex items-center justify-center gap-1">
+                                                            {item.source_type === 'tv' ? <Tv className="w-3 h-3" /> :
+                                                                item.source_type === 'radio' ? <Mic className="w-3 h-3" /> :
+                                                                    <Globe className="w-3 h-3" />}
+                                                            {sourceTypeLabels[item.source_type] || item.source_type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${item.sentiment === 'negative' ? 'bg-red-500/10 text-red-400' :
+                                                                item.sentiment === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                                    'bg-slate-700 text-slate-400'
+                                                            }`}>
+                                                            {item.sentiment === 'negative' ? 'Neg' : item.sentiment === 'positive' ? 'Pos' : 'Neutro'}
+                                                        </span>
+                                                    </td>
+                                                    <td className={`px-4 py-2 text-center font-mono text-xs ${item.risk_score >= 70 ? 'text-red-400' : item.risk_score >= 40 ? 'text-yellow-400' : 'text-slate-400'}`}>
+                                                        {item.risk_score || '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center text-xs text-slate-400">{formatDate(item.created_at)}</td>
+                                                    <td className="px-4 py-2 text-center">
+                                                        {isMediaOnly ? (
+                                                            <span className="text-[10px] text-slate-500">{item.source_type.toUpperCase()}</span>
+                                                        ) : item.url ? (
+                                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 transition" title={item.url}>
+                                                                <ExternalLink className="w-3.5 h-3.5 mx-auto" />
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-[10px] text-slate-600">—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                                {vehicleItems.length > 50 && (
+                                    <div className="px-4 py-2 text-xs text-slate-500 text-center border-t border-slate-700/30">
+                                        Exibindo 50 de {vehicleItems.length} itens
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </SectionWrapper>
+
+                    {/* ═══ SECTION 9: THREATS REPORT ═══ */}
+                    <SectionWrapper
+                        title="Relatório de Ameaças"
+                        icon={<UserX className="w-5 h-5 text-red-400" />}
+                        sectionKey="threats"
+                        expanded={expandedSections.threats}
+                        onToggle={toggleSection}
+                    >
+                        {threatsLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 text-red-400 animate-spin" />
+                            </div>
+                        ) : threatProfiles.length === 0 ? (
+                            <div className="bg-slate-800/30 border border-dashed border-slate-700 rounded-xl p-6 text-center">
+                                <ShieldAlert className="w-8 h-8 text-emerald-500/50 mx-auto mb-2" />
+                                <p className="text-sm text-slate-400">Nenhuma ameaça identificada no período.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {/* Summary KPIs */}
+                                <div className="grid grid-cols-3 gap-3 mb-4">
+                                    <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3 text-center">
+                                        <div className="text-xl font-bold text-red-400">{threatProfiles.length}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase">Perfis Hostis</div>
+                                    </div>
+                                    <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-3 text-center">
+                                        <div className="text-xl font-bold text-orange-400">{threatProfiles.reduce((s, p) => s + p.negativeMentionCount, 0)}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase">Menções Negativas</div>
+                                    </div>
+                                    <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3 text-center">
+                                        <div className="text-xl font-bold text-yellow-400">{Math.max(...threatProfiles.map(p => p.maxRiskScore))}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase">Risco Máximo</div>
+                                    </div>
+                                </div>
+
+                                {/* Profile List */}
+                                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-700/50 text-left">
+                                                <th className="px-4 py-3 text-slate-400 font-medium">Perfil</th>
+                                                <th className="px-4 py-3 text-slate-400 font-medium text-center">Menções Neg.</th>
+                                                <th className="px-4 py-3 text-slate-400 font-medium text-center">Risco Médio</th>
+                                                <th className="px-4 py-3 text-slate-400 font-medium text-center">Risco Máx.</th>
+                                                <th className="px-4 py-3 text-slate-400 font-medium text-center">Tipo Mídia</th>
+                                                <th className="px-4 py-3 text-slate-400 font-medium text-right">Última Atividade</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {threatProfiles.slice(0, 25).map((profile, i) => {
+                                                const level = profile.maxRiskScore >= 80 ? 'critical' : profile.maxRiskScore >= 60 ? 'high' : profile.negativeMentionCount >= 2 ? 'moderate' : 'low';
+                                                const levelColors = { critical: 'text-red-400', high: 'text-orange-400', moderate: 'text-amber-400', low: 'text-slate-400' };
+                                                return (
+                                                    <tr key={profile.key} className={`border-b border-slate-700/30 ${i % 2 ? 'bg-slate-800/30' : ''}`}>
+                                                        <td className="px-4 py-2">
+                                                            <div className="flex items-center gap-2">
+                                                                {profile.profileImage ? (
+                                                                    <img src={profile.profileImage} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-600" />
+                                                                ) : (
+                                                                    <div className="w-7 h-7 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-[10px] text-slate-400 font-bold">
+                                                                        {profile.displayName.slice(0, 2).toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <div>
+                                                                    <span className="text-white text-sm font-medium">{profile.displayName}</span>
+                                                                    {profile.username && <span className="text-[10px] text-slate-500 ml-1.5">@{profile.username}</span>}
+                                                                    {profile.followers && <span className="text-[10px] text-slate-600 ml-1">{profile.followers >= 1000 ? `${(profile.followers / 1000).toFixed(1)}k` : profile.followers} seg.</span>}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center font-mono font-bold text-red-400">{profile.negativeMentionCount}</td>
+                                                        <td className={`px-4 py-2 text-center font-mono ${levelColors[level]}`}>{profile.avgRiskScore}%</td>
+                                                        <td className={`px-4 py-2 text-center font-mono ${levelColors[level]}`}>{profile.maxRiskScore}%</td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                {profile.sourceTypes.map(t => (
+                                                                    <span key={t} className="text-[9px] bg-slate-700/50 text-slate-400 px-1.5 py-0.5 rounded">{sourceTypeLabels[t] || t}</span>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right text-xs text-slate-400">{formatDate(profile.lastActivity)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {threatProfiles.length > 25 && (
+                                        <div className="px-4 py-2 text-xs text-slate-500 text-center border-t border-slate-700/30">
+                                            Exibindo 25 de {threatProfiles.length} perfis
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </SectionWrapper>
+
+                    {/* ═══ SECTION 10: AI ANALYSIS ═══ */}
+                    <SectionWrapper
+                        title="Análise por IA"
+                        icon={<Brain className="w-5 h-5 text-purple-400" />}
+                        sectionKey="ai"
+                        expanded={expandedSections.ai}
+                        onToggle={toggleSection}
+                    >
+                        {aiLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="text-center">
+                                    <Loader2 className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-3" />
+                                    <p className="text-slate-400 text-sm">Gerando análise com IA...</p>
+                                    <p className="text-slate-500 text-xs mt-1">Isso pode levar alguns segundos.</p>
+                                </div>
+                            </div>
+                        ) : aiAnalysis ? (
+                            <div className="bg-slate-800/50 border border-purple-500/20 rounded-xl p-5">
+                                {aiUpdatedAt && (
+                                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/50">
+                                        <span className="text-xs text-slate-500">Atualizado em {formatDateTime(aiUpdatedAt)}</span>
+                                        <button
+                                            onClick={generateAiAnalysis}
+                                            className="text-xs text-purple-400 hover:text-purple-300 transition flex items-center gap-1"
+                                        >
+                                            <RefreshCw className="w-3 h-3" /> Regenerar
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="prose prose-sm prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                    {aiAnalysis}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-slate-800/30 border border-dashed border-slate-700 rounded-xl p-8 text-center">
+                                <Brain className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                                <p className="text-slate-400 text-sm mb-3">Nenhuma análise de IA gerada para esta ativação.</p>
+                                <button
+                                    onClick={generateAiAnalysis}
+                                    disabled={aiLoading}
+                                    className="bg-gradient-to-r from-purple-600 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-purple-500 hover:to-purple-400 transition text-sm font-medium inline-flex items-center gap-2"
+                                >
+                                    <Sparkles className="w-4 h-4" /> Gerar Relatório com IA
+                                </button>
+                            </div>
+                        )}
+                    </SectionWrapper>
+
                     {/* ═══ FOOTER (print) ═══ */}
-                    <footer className="hidden print:block pt-8 border-t border-slate-700/50 text-center space-y-2">
-                        <p className="text-xs text-slate-500">
-                            Relatório gerado em {formatDateTime(new Date().toISOString())} — Dados em tempo real
-                        </p>
-                        <p className="text-[10px] text-slate-600 font-medium">
-                            Powered by Elege.ai — Plataforma de Inteligência Estratégica
+                    <footer className="hidden print:block pt-4 border-t border-slate-700/50 text-center">
+                        <p className="text-[10px] text-slate-500">
+                            Relatório gerado em {formatDateTime(new Date().toISOString())} — Elege.ai
                         </p>
                     </footer>
                 </div>

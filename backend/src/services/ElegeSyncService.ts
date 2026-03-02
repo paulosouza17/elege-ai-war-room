@@ -11,6 +11,50 @@ export class ElegeSyncService {
     private watermarkService: SyncWatermarkService;
     private SYNC_INTERVAL_MS = (parseInt(process.env.ELEGEAI_SYNC_INTERVAL_MINUTES || '5', 10) || 5) * 60 * 1000;
 
+    // ── Circuit Breaker ──
+    private consecutiveFailures = 0;
+    private circuitOpenUntil: number = 0;
+    private readonly CB_FAILURE_THRESHOLD = 5;
+    private readonly CB_COOLDOWN_MS = 60_000; // 60s pause after threshold
+
+    private isCircuitOpen(): boolean {
+        if (this.circuitOpenUntil > 0 && Date.now() < this.circuitOpenUntil) {
+            return true; // still cooling down
+        }
+        if (this.circuitOpenUntil > 0 && Date.now() >= this.circuitOpenUntil) {
+            // cooldown expired — half-open: allow one attempt
+            this.circuitOpenUntil = 0;
+            console.log('[ElegeSync] ⚡ Circuit breaker half-open — retrying API...');
+        }
+        return false;
+    }
+
+    private recordSuccess() {
+        if (this.consecutiveFailures > 0) {
+            console.log(`[ElegeSync] ✅ API recovered after ${this.consecutiveFailures} failures`);
+        }
+        this.consecutiveFailures = 0;
+        this.circuitOpenUntil = 0;
+    }
+
+    private recordFailure(error: any) {
+        const isNetworkError = error?.code === 'EAI_AGAIN'
+            || error?.code === 'ENOTFOUND'
+            || error?.code === 'ECONNREFUSED'
+            || error?.code === 'ETIMEDOUT'
+            || error?.message?.includes('EAI_AGAIN')
+            || error?.message?.includes('ENOTFOUND')
+            || error?.message?.includes('timeout');
+
+        if (!isNetworkError) return; // only trip on network errors
+
+        this.consecutiveFailures++;
+        if (this.consecutiveFailures >= this.CB_FAILURE_THRESHOLD && this.circuitOpenUntil === 0) {
+            this.circuitOpenUntil = Date.now() + this.CB_COOLDOWN_MS;
+            console.warn(`[ElegeSync] 🔴 Circuit breaker OPEN — ${this.consecutiveFailures} consecutive network failures. Pausing API calls for ${this.CB_COOLDOWN_MS / 1000}s`);
+        }
+    }
+
     constructor(supabaseClient: SupabaseClient) {
         this.supabase = supabaseClient;
         this.apiKey = process.env.ELEGEAI_API_TOKEN || '';
@@ -44,6 +88,11 @@ export class ElegeSyncService {
 
     private async runSync() {
         if (!this.apiKey) return;
+
+        if (this.isCircuitOpen()) {
+            console.log(`[ElegeSync] ⏸ Sync skipped — circuit breaker open (${Math.ceil((this.circuitOpenUntil - Date.now()) / 1000)}s remaining)`);
+            return;
+        }
 
         console.log('[ElegeSync] Starting sync cycle...');
 
@@ -142,6 +191,7 @@ export class ElegeSyncService {
      * The mentions endpoint only returns {id, title} for posts.
      */
     private async fetchFullPost(postId: number): Promise<any | null> {
+        if (this.isCircuitOpen()) return null; // skip when circuit is open
         try {
             const url = `${this.apiBaseUrl}/posts/${postId}`;
             const response = await axios.get(url, {
@@ -151,9 +201,13 @@ export class ElegeSyncService {
                 },
                 timeout: 15000,
             });
+            this.recordSuccess();
             return response.data;
         } catch (error: any) {
-            console.warn(`[ElegeSync] Could not fetch full post ${postId}: ${error.message}`);
+            this.recordFailure(error);
+            if (!this.isCircuitOpen()) {
+                console.warn(`[ElegeSync] Could not fetch full post ${postId}: ${error.message}`);
+            }
             return null;
         }
     }
@@ -248,6 +302,8 @@ export class ElegeSyncService {
             );
             const startDate = this.watermarkService.getStartDate(watermark, 48); // 48h fallback
 
+            if (this.isCircuitOpen()) return; // skip when circuit is open
+
             const url = `${this.apiBaseUrl}/analytics/mentions/latest?channel_id=${channelId}&limit=30&start_date=${startDate}`;
 
             const response = await axios.get(url, {
@@ -257,6 +313,7 @@ export class ElegeSyncService {
                 },
                 timeout: 30000,
             });
+            this.recordSuccess();
 
             const data = response.data;
             const mentions = data.mentions || data.data || [];
@@ -455,6 +512,7 @@ export class ElegeSyncService {
             }
 
         } catch (error: any) {
+            this.recordFailure(error);
             if (error.response?.status === 404 || error.response?.status === 400) {
                 console.log(`[ElegeSync] Channel ${channelTitle} (${channelId}): API returned ${error.response.status}, skipping`);
             } else {
@@ -471,6 +529,8 @@ export class ElegeSyncService {
             );
             const startDate = this.watermarkService.getStartDate(watermark, 48); // 48h fallback
 
+            if (this.isCircuitOpen()) return; // skip when circuit is open
+
             const url = `${this.apiBaseUrl}/analytics/mentions/latest?person_id=${personId}&limit=50&start_date=${startDate}`;
 
             const response = await axios.get(url, {
@@ -480,6 +540,7 @@ export class ElegeSyncService {
                 },
                 timeout: 30000,
             });
+            this.recordSuccess();
 
             const data = response.data;
             const mentions = data.mentions || data.data || [];
